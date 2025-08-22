@@ -15,6 +15,23 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            z-index: 1000;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        @media (min-width: 768px) {
+            .sidebar {
+                position: relative;
+                transform: translateX(0);
+                width: auto;
+            }
+        }
+        .sidebar.show {
+            transform: translateX(0);
         }
         .sidebar .nav-link {
             color: rgba(255,255,255,0.8);
@@ -22,6 +39,12 @@
             border-radius: 8px;
             margin: 2px 0;
             transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+        @media (min-width: 768px) {
+            .sidebar .nav-link {
+                font-size: 1rem;
+            }
         }
         .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
@@ -30,13 +53,22 @@
             transform: translateX(5px);
         }
         .main-content {
-            padding: 20px;
+            padding: 15px;
+            margin-left: 0;
+            transition: margin-left 0.3s ease;
+        }
+        @media (min-width: 768px) {
+            .main-content {
+                padding: 20px;
+                margin-left: 0;
+            }
         }
         .card {
             border: none;
             border-radius: 15px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.08);
             transition: transform 0.3s ease;
+            margin-bottom: 20px;
         }
         .card:hover {
             transform: translateY(-2px);
@@ -45,23 +77,50 @@
             border-radius: 8px;
             padding: 8px 16px;
             font-weight: 500;
+            font-size: 0.9rem;
+        }
+        @media (min-width: 768px) {
+            .btn-custom {
+                font-size: 1rem;
+            }
         }
         .table {
             border-radius: 10px;
             overflow: hidden;
+            font-size: 0.9rem;
+        }
+        @media (min-width: 768px) {
+            .table {
+                font-size: 1rem;
+            }
         }
         .table th {
             background: #f8f9fa;
             border: none;
             font-weight: 600;
+            font-size: 0.9rem;
+        }
+        @media (min-width: 768px) {
+            .table th {
+                font-size: 1rem;
+            }
         }
         .attendance-toggle {
-            width: 60px;
-            height: 30px;
-            border-radius: 15px;
+            width: 50px;
+            height: 25px;
+            border-radius: 12px;
             border: none;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-size: 0.75rem;
+        }
+        @media (min-width: 768px) {
+            .attendance-toggle {
+                width: 60px;
+                height: 30px;
+                border-radius: 15px;
+                font-size: 0.8rem;
+            }
         }
         .attendance-toggle.present {
             background: #28a745;
@@ -82,18 +141,208 @@
         .form-control {
             border-radius: 8px;
             border: 2px solid #e9ecef;
+            font-size: 1rem;
+        }
+        @media (max-width: 767px) {
+            .form-control {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
         }
         .form-control:focus {
             border-color: #667eea;
             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
         }
+        .mobile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            margin: -15px -15px 20px -15px;
+            border-radius: 0 0 15px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        @media (min-width: 768px) {
+            .mobile-header {
+                display: none;
+            }
+        }
+        .mobile-menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            padding: 5px;
+        }
+        .mobile-menu-btn:focus {
+            outline: none;
+            box-shadow: none;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+        @media (min-width: 768px) {
+            .overlay {
+                display: none !important;
+            }
+        }
+        .overlay.show {
+            display: block;
+        }
+        .btn-close-sidebar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .btn-close-sidebar {
+                display: none;
+            }
+        }
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+        @media (min-width: 768px) {
+            .section-title {
+                font-size: 2rem;
+                margin-bottom: 30px;
+            }
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        @media (min-width: 768px) {
+            .stats-grid {
+                display: flex;
+                gap: 20px;
+            }
+        }
+        .stats-card {
+            text-align: center;
+            padding: 20px 15px;
+        }
+        @media (min-width: 768px) {
+            .stats-card {
+                padding: 20px;
+            }
+        }
+        .stats-card i {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        @media (min-width: 768px) {
+            .stats-card i {
+                font-size: 2rem;
+                margin-bottom: 15px;
+            }
+        }
+        .stats-card h4 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        @media (min-width: 768px) {
+            .stats-card h4 {
+                font-size: 2rem;
+                margin-bottom: 10px;
+            }
+        }
+        .stats-card p {
+            font-size: 0.85rem;
+            margin: 0;
+        }
+        @media (min-width: 768px) {
+            .stats-card p {
+                font-size: 1rem;
+            }
+        }
+        .table-responsive {
+            border-radius: 10px;
+        }
+        .modal-dialog {
+            margin: 10px;
+        }
+        @media (min-width: 768px) {
+            .modal-dialog {
+                margin: 1.75rem auto;
+            }
+        }
+        .form-label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+        @media (min-width: 768px) {
+            .form-label {
+                font-size: 1rem;
+                margin-bottom: 10px;
+            }
+        }
+        .btn {
+            font-size: 0.9rem;
+        }
+        @media (min-width: 768px) {
+            .btn {
+                font-size: 1rem;
+            }
+        }
+        .card-header h5 {
+            font-size: 1.1rem;
+            margin: 0;
+        }
+        @media (min-width: 768px) {
+            .card-header h5 {
+                font-size: 1.25rem;
+            }
+        }
+        .alert {
+            font-size: 0.9rem;
+            border-radius: 10px;
+        }
+        @media (min-width: 768px) {
+            .alert {
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Overlay -->
+    <div class="overlay" id="overlay"></div>
+
     <div class="container-fluid">
         <div class="row">
+            <!-- Mobile Header -->
+            <div class="mobile-header">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h5 class="mb-0">
+                    <i class="fas fa-graduation-cap me-2"></i>
+                    Admin Panel
+                </h5>
+                <div style="width: 30px;"></div>
+            </div>
+
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar p-0">
+            <div class="col-md-3 col-lg-2 sidebar p-0" id="sidebar">
+                <button class="btn-close-sidebar" onclick="toggleSidebar()">
+                    <i class="fas fa-times"></i>
+                </button>
                 <div class="p-3">
                     <h5 class="text-center mb-4">
                         <i class="fas fa-graduation-cap me-2"></i>
@@ -110,20 +359,20 @@
                         Subjects
                     </a>
                     <a class="nav-link" href="#" onclick="showSection('students')">
-                        <i class="fas fa-users me-2"></i>
+                        <i class="fas fa-user-graduate me-2"></i>
                         Students
                     </a>
                     <a class="nav-link" href="#" onclick="showSection('attendance')">
-                        <i class="fas fa-clipboard-check me-2"></i>
+                        <i class="fas fa-calendar-check me-2"></i>
                         Attendance
                     </a>
                     <a class="nav-link" href="#" onclick="showSection('reports')">
                         <i class="fas fa-chart-bar me-2"></i>
                         Reports
                     </a>
-                    <a class="nav-link" href="#" onclick="showSection('attendance-records')">
-                        <i class="fas fa-list-alt me-2"></i>
-                        Attendance Records
+                    <a class="nav-link" href="#" onclick="showSection('records')">
+                        <i class="fas fa-list me-2"></i>
+                        Records
                     </a>
                     <a class="nav-link" href="#" onclick="showSection('announcements')">
                         <i class="fas fa-bullhorn me-2"></i>
@@ -142,79 +391,76 @@
             <div class="col-md-9 col-lg-10 main-content">
                 <!-- Dashboard Section -->
                 <div id="dashboard-section" class="section">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Dashboard</h2>
-                        <span class="text-muted">Welcome, <span id="admin-name">Admin</span></span>
-                    </div>
-
-                    <div class="row mb-4">
-                        <div class="col-md-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-book fa-2x mb-2"></i>
-                                    <h4 id="total-subjects">0</h4>
-                                    <p class="mb-0">Total Subjects</p>
-                                </div>
+                    <h2 class="section-title">Dashboard</h2>
+                    
+                    <div class="stats-grid">
+                        <div class="card stats-card">
+                            <div class="card-body">
+                                <i class="fas fa-book"></i>
+                                <h4 id="total-subjects-dash">0</h4>
+                                <p>Total Subjects</p>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-users fa-2x mb-2"></i>
-                                    <h4 id="total-students">0</h4>
-                                    <p class="mb-0">Total Students</p>
-                                </div>
+                        <div class="card stats-card">
+                            <div class="card-body">
+                                <i class="fas fa-user-graduate"></i>
+                                <h4 id="total-students-dash">0</h4>
+                                <p>Total Students</p>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-calendar-check fa-2x mb-2"></i>
-                                    <h4 id="today-attendance">0</h4>
-                                    <p class="mb-0">Today's Attendance</p>
-                                </div>
+                        <div class="card stats-card">
+                            <div class="card-body">
+                                <i class="fas fa-calendar-check"></i>
+                                <h4 id="total-attendance-dash">0</h4>
+                                <p>Attendance Records</p>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-percentage fa-2x mb-2"></i>
-                                    <h4 id="avg-attendance">0%</h4>
-                                    <p class="mb-0">Average Attendance</p>
-                                </div>
+                        <div class="card stats-card">
+                            <div class="card-body">
+                                <i class="fas fa-bullhorn"></i>
+                                <h4 id="total-announcements-dash">0</h4>
+                                <p>Announcements</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5>Recent Attendance</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div id="recent-attendance"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-lg-6">
                             <div class="card">
                                 <div class="card-header">
                                     <h5>Quick Actions</h5>
                                 </div>
                                 <div class="card-body">
-                                    <button class="btn btn-primary btn-custom mb-2 w-100" onclick="showSection('attendance')">
-                                        <i class="fas fa-plus me-2"></i>Take Attendance
-                                    </button>
-                                    <button class="btn btn-success btn-custom mb-2 w-100" onclick="showSection('students')">
-                                        <i class="fas fa-user-plus me-2"></i>Add Student
-                                    </button>
-                                    <button class="btn btn-info btn-custom mb-2 w-100" onclick="showSection('subjects')">
-                                        <i class="fas fa-book-open me-2"></i>Add Subject
-                                    </button>
-                                    <button class="btn btn-warning btn-custom mb-2 w-100" onclick="showChangePasswordModal()">
-                                        <i class="fas fa-key me-2"></i>Change Password
-                                    </button>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary btn-custom" onclick="showSection('subjects')">
+                                            <i class="fas fa-plus me-2"></i>
+                                            Add Subject
+                                        </button>
+                                        <button class="btn btn-success btn-custom" onclick="showSection('students')">
+                                            <i class="fas fa-user-plus me-2"></i>
+                                            Add Student
+                                        </button>
+                                        <button class="btn btn-info btn-custom" onclick="showSection('attendance')">
+                                            <i class="fas fa-calendar-plus me-2"></i>
+                                            Mark Attendance
+                                        </button>
+                                        <button class="btn btn-warning btn-custom" onclick="showChangePasswordModal()">
+                                            <i class="fas fa-key me-2"></i>
+                                            Change Password
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Recent Activity</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recent-activity">
+                                        <p class="text-muted">No recent activity</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -224,12 +470,13 @@
                 <!-- Subjects Section -->
                 <div id="subjects-section" class="section" style="display: none;">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Subject Management</h2>
+                        <h2 class="section-title">Subjects</h2>
                         <button class="btn btn-primary btn-custom" onclick="showAddSubjectModal()">
-                            <i class="fas fa-plus me-2"></i>Add Subject
+                            <i class="fas fa-plus me-2"></i>
+                            Add Subject
                         </button>
                     </div>
-
+                    
                     <div class="card">
                         <div class="card-body">
                             <div class="table-responsive">
@@ -239,11 +486,14 @@
                                             <th>ID</th>
                                             <th>Subject Name</th>
                                             <th>Description</th>
-                                            <th>Created Date</th>
+                                            <th>Created</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="subjects-table">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">No subjects found</td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -254,12 +504,13 @@
                 <!-- Students Section -->
                 <div id="students-section" class="section" style="display: none;">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Student Management</h2>
+                        <h2 class="section-title">Students</h2>
                         <button class="btn btn-primary btn-custom" onclick="showAddStudentModal()">
-                            <i class="fas fa-plus me-2"></i>Add Student
+                            <i class="fas fa-plus me-2"></i>
+                            Add Student
                         </button>
                     </div>
-
+                    
                     <div class="card">
                         <div class="card-body">
                             <div class="table-responsive">
@@ -275,6 +526,9 @@
                                         </tr>
                                     </thead>
                                     <tbody id="students-table">
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">No students found</td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -284,42 +538,42 @@
 
                 <!-- Attendance Section -->
                 <div id="attendance-section" class="section" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Attendance Management</h2>
-                        <div>
-                            <button class="btn btn-success btn-custom" onclick="saveAttendance()">
-                                <i class="fas fa-save me-2"></i>Save Attendance
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <label class="form-label">Select Subject</label>
-                                    <select class="form-select" id="attendance-subject">
-                                        <option value="">Choose subject...</option>
-                                    </select>
+                    <h2 class="section-title">Mark Attendance</h2>
+                    
+                    <div class="row">
+                        <div class="col-12 col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Select Options</h5>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Select Date</label>
-                                    <input type="date" class="form-control" id="attendance-date" value="">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">&nbsp;</label>
-                                    <button class="btn btn-primary btn-custom w-100" onclick="loadAttendanceForm()">
-                                        <i class="fas fa-search me-2"></i>Load Students
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Subject</label>
+                                        <select class="form-select" id="attendance-subject">
+                                            <option value="">Select Subject</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Date</label>
+                                        <input type="date" class="form-control" id="attendance-date">
+                                    </div>
+                                    <button class="btn btn-primary w-100" onclick="loadAttendanceForm()">
+                                        <i class="fas fa-search me-2"></i>
+                                        Load Students
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-body">
-                            <div id="attendance-form-container">
-                                <p class="text-center text-muted">Select a subject and date to load the attendance form</p>
+                        <div class="col-12 col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Student Attendance</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="attendance-form">
+                                        <p class="text-muted text-center">Select subject and date to mark attendance</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -327,98 +581,101 @@
 
                 <!-- Reports Section -->
                 <div id="reports-section" class="section" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Attendance Reports</h2>
-                        <div>
-                            <button class="btn btn-primary btn-custom" onclick="generateReport()">
-                                <i class="fas fa-download me-2"></i>Export Report
-                            </button>
+                    <h2 class="section-title">Attendance Reports</h2>
+                    
+                    <div class="row">
+                        <div class="col-12 col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Filter Options</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Subject</label>
+                                        <select class="form-select" id="report-subject">
+                                            <option value="">All Subjects</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Start Date</label>
+                                        <input type="date" class="form-control" id="report-start-date">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">End Date</label>
+                                        <input type="date" class="form-control" id="report-end-date">
+                                    </div>
+                                    <button class="btn btn-primary w-100" onclick="loadReport()">
+                                        <i class="fas fa-search me-2"></i>
+                                        Generate Report
+                                    </button>
+                                    <button class="btn btn-success w-100 mt-2" onclick="exportReportCSV()">
+                                        <i class="fas fa-download me-2"></i>
+                                        Export CSV
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <label class="form-label">Select Subject</label>
-                                    <select class="form-select" id="report-subject">
-                                        <option value="">All Subjects</option>
-                                    </select>
+                        <div class="col-12 col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Report Results</h5>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Date Range</label>
-                                    <input type="date" class="form-control" id="report-start-date">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">End Date</label>
-                                    <input type="date" class="form-control" id="report-end-date">
-                                </div>
-                                <div class="col-md-4 d-grid">
-                                    <label class="form-label">&nbsp;</label>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-primary btn-custom" onclick="loadReport()">
-                                            <i class="fas fa-search me-2"></i>Generate
-                                        </button>
-                                        <button class="btn btn-success btn-custom" onclick="exportReportCSV()">
-                                            <i class="fas fa-file-csv me-2"></i>Export CSV
-                                        </button>
+                                <div class="card-body">
+                                    <div id="report-results">
+                                        <p class="text-muted text-center">Generate a report to view results</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="card">
-                        <div class="card-body">
-                            <div id="report-container">
-                                <p class="text-center text-muted">Generate a report to view attendance statistics</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Attendance Records Section -->
-                <div id="attendance-records-section" class="section" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Attendance Records</h2>
-                        <div>
-                            <button class="btn btn-success btn-custom" onclick="exportRecordsCSV()">
-                                <i class="fas fa-file-csv me-2"></i>Export Records CSV
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <label class="form-label">Select Subject</label>
-                                    <select class="form-select" id="records-subject">
-                                        <option value="">All Subjects</option>
-                                    </select>
+                <!-- Records Section -->
+                <div id="records-section" class="section" style="display: none;">
+                    <h2 class="section-title">Attendance Records</h2>
+                    
+                    <div class="row">
+                        <div class="col-12 col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Filter Options</h5>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Start Date</label>
-                                    <input type="date" class="form-control" id="records-start-date">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">End Date</label>
-                                    <input type="date" class="form-control" id="records-end-date">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">&nbsp;</label>
-                                    <button class="btn btn-primary btn-custom w-100" onclick="loadAttendanceRecords()">
-                                        <i class="fas fa-search me-2"></i>View Records
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Subject</label>
+                                        <select class="form-select" id="records-subject">
+                                            <option value="">All Subjects</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Start Date</label>
+                                        <input type="date" class="form-control" id="records-start-date">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">End Date</label>
+                                        <input type="date" class="form-control" id="records-end-date">
+                                    </div>
+                                    <button class="btn btn-primary w-100" onclick="loadAttendanceRecords()">
+                                        <i class="fas fa-search me-2"></i>
+                                        View Records
+                                    </button>
+                                    <button class="btn btn-success w-100 mt-2" onclick="exportRecordsCSV()">
+                                        <i class="fas fa-download me-2"></i>
+                                        Export CSV
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-body">
-                            <div id="records-container">
-                                <p class="text-center text-muted">Select filters and click "View Records" to see detailed attendance</p>
+                        <div class="col-12 col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Detailed Records</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="records-results">
+                                        <p class="text-muted text-center">Select filters to view detailed records</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -427,12 +684,13 @@
                 <!-- Announcements Section -->
                 <div id="announcements-section" class="section" style="display: none;">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Announcements Management</h2>
+                        <h2 class="section-title">Announcements</h2>
                         <button class="btn btn-primary btn-custom" onclick="showAddAnnouncementModal()">
-                            <i class="fas fa-plus me-2"></i>Add Announcement
+                            <i class="fas fa-plus me-2"></i>
+                            Add Announcement
                         </button>
                     </div>
-
+                    
                     <div class="card">
                         <div class="card-body">
                             <div class="table-responsive">
@@ -448,6 +706,9 @@
                                         </tr>
                                     </thead>
                                     <tbody id="announcements-table">
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">No announcements found</td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -458,12 +719,13 @@
         </div>
     </div>
 
+    <!-- Modals -->
     <!-- Add Subject Modal -->
     <div class="modal fade" id="addSubjectModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Add New Subject</h5>
+                    <h5 class="modal-title">Add Subject</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -480,7 +742,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="addSubject()">Add Subject</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSubject()">Save Subject</button>
                 </div>
             </div>
         </div>
@@ -491,17 +753,13 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Add New Student</h5>
+                    <h5 class="modal-title">Add Student</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="addStudentForm">
                         <div class="mb-3">
-                            <label class="form-label">Student ID</label>
-                            <input type="text" class="form-control" id="student-id" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Full Name</label>
+                            <label class="form-label">Name</label>
                             <input type="text" class="form-control" id="student-name" required>
                         </div>
                         <div class="mb-3">
@@ -516,76 +774,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="addStudent()">Add Student</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add/Edit Announcement Modal -->
-    <div class="modal fade" id="announcementModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="announcementModalLabel">Add New Announcement</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="announcementForm">
-                        <input type="hidden" id="announcement-id">
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="mb-3">
-                                    <label class="form-label">Title</label>
-                                    <input type="text" class="form-control" id="announcement-title" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Type</label>
-                                    <select class="form-select" id="announcement-type">
-                                        <option value="notice">Notice</option>
-                                        <option value="event">Event</option>
-                                        <option value="achievement">Achievement</option>
-                                        <option value="important">Important</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Priority</label>
-                                    <select class="form-select" id="announcement-priority">
-                                        <option value="normal">Normal</option>
-                                        <option value="high">High</option>
-                                        <option value="urgent">Urgent</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Status</label>
-                                    <select class="form-select" id="announcement-status">
-                                        <option value="1">Active</option>
-                                        <option value="0">Inactive</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Content</label>
-                            <textarea class="form-control" id="announcement-content" rows="6" required></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Attachment (any file type)</label>
-                            <input type="file" class="form-control" id="announcement-file">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveAnnouncement()">Save Announcement</button>
+                    <button type="button" class="btn btn-primary" onclick="addStudent()">Save Student</button>
                 </div>
             </div>
         </div>
@@ -602,18 +791,84 @@
                 <div class="modal-body">
                     <form id="changePasswordForm">
                         <div class="mb-3">
+                            <label class="form-label">New Username</label>
+                            <input type="text" class="form-control" id="new-username" required>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">New Password</label>
                             <input type="password" class="form-control" id="new-password" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Confirm New Password</label>
+                            <label class="form-label">Confirm Password</label>
                             <input type="password" class="form-control" id="confirm-password" required>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-warning" onclick="changePassword()">Change Password</button>
+                    <button type="button" class="btn btn-primary" onclick="changePassword()">Change Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Announcement Modal -->
+    <div class="modal fade" id="announcementModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="announcementModalLabel">Add Announcement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="announcementForm">
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="form-control" id="announcement-title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Content</label>
+                            <textarea class="form-control" id="announcement-content" rows="4" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-select" id="announcement-type">
+                                        <option value="notice">Notice</option>
+                                        <option value="event">Event</option>
+                                        <option value="recognition">Recognition</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Priority</label>
+                                    <select class="form-select" id="announcement-priority">
+                                        <option value="normal">Normal</option>
+                                        <option value="important">Important</option>
+                                        <option value="urgent">Urgent</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="announcement-status">
+                                <option value="1">Active</option>
+                                <option value="0">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Attachment</label>
+                            <input type="file" class="form-control" id="announcement-file">
+                            <small class="form-text text-muted" id="current-file-display"></small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveAnnouncement()">Save Announcement</button>
                 </div>
             </div>
         </div>
@@ -621,5 +876,46 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="admin.js"></script>
+    <script>
+        // Mobile sidebar functionality
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+
+        // Close sidebar when clicking overlay
+        document.getElementById('overlay').addEventListener('click', function() {
+            toggleSidebar();
+        });
+
+        // Close sidebar when clicking a nav link on mobile
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Show selected section
+            document.getElementById(sectionName + '-section').style.display = 'block';
+            
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Close sidebar on mobile
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
+        }
+
+        function logout() {
+            window.location.href = '/logout';
+        }
+    </script>
 </body>
 </html>

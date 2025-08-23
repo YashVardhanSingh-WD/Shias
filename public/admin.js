@@ -11,22 +11,43 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSubjects();
     loadStudents();
     setCurrentDate();
+    
+    // Add session debugging (remove in production)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        checkSessionDebug();
+    }
 });
+
+// Session debugging function (for development)
+async function checkSessionDebug() {
+    try {
+        const response = await fetch('/api/session/check');
+        const sessionData = await response.json();
+        console.log('Session Debug Info:', sessionData);
+    } catch (error) {
+        console.error('Session check error:', error);
+    }
+}
 
 // Authentication check
 async function checkAuth() {
     try {
-        const response = await fetch('/api/user');
+        const response = await fetch('/api/user', {
+            credentials: 'include' // Important for session cookies
+        });
         const user = await response.json();
         
         if (!user || user.role !== 'admin') {
+            console.log('Auth failed - redirecting to login');
             window.location.href = '/login';
             return;
         }
         
         currentUser = user;
         document.getElementById('admin-name').textContent = user.name;
+        console.log('Auth successful for user:', user.username);
     } catch (error) {
+        console.error('Auth check error:', error);
         window.location.href = '/login';
     }
 }

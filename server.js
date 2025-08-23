@@ -11,15 +11,26 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy for production (important for session cookies)
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
+
 // Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(session({
-    secret: 'attendance-system-secret-key',
+    secret: process.env.SESSION_SECRET || 'attendance-system-secret-key-change-in-production',
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }
+    saveUninitialized: false,
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: 'lax'
+    },
+    name: 'attendance-session'
 }));
 
 // Set up uploads directory
@@ -143,6 +154,18 @@ app.get('/student', (req, res) => {
 
 // API Routes
 
+// Session check endpoint (for debugging)
+app.get('/api/session/check', (req, res) => {
+    res.json({
+        sessionId: req.sessionID,
+        isAuthenticated: req.session.user ? true : false,
+        userId: req.session.user ? req.session.user.id : null,
+        username: req.session.user ? req.session.user.username : null,
+        role: req.session.user ? req.session.user.role : null,
+        cookie: req.session.cookie
+    });
+});
+
 // Login
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
@@ -168,7 +191,20 @@ app.post('/api/login', (req, res) => {
             student_id: user.student_id
         };
         
-        res.json({ success: true, user: req.session.user });
+        // Force session save
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.status(500).json({ error: 'Session error' });
+            }
+            
+            console.log('Admin login successful:', user.username, 'Session ID:', req.sessionID);
+            res.json({ 
+                success: true, 
+                user: req.session.user,
+                sessionId: req.sessionID
+            });
+        });
     });
 });
 

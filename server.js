@@ -44,14 +44,22 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'attendance-system-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        sameSite: 'lax'
-    },
+        cookie: {
+            secure: false, // Always false for now to ensure cookies work in all environments
+            httpOnly: true,
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+            sameSite: 'lax'
+        },
     name: 'attendance-session'
 }));
+
+// Debug: Log session creation and user info
+app.use((req, res, next) => {
+    if (req.session) {
+        console.log('Session ID:', req.sessionID, 'User:', req.session.user);
+    }
+    next();
+});
 
 // Set up uploads directory
 const UPLOADS_DIR = path.join(__dirname, 'uploads');

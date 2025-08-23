@@ -397,7 +397,7 @@ async function loadAttendanceForm() {
         const existingAttendance = await response.json();
         
         // Create attendance form
-        const container = document.getElementById('attendance-form-container');
+    const container = document.getElementById('attendance-form');
         let html = '<div class="table-responsive"><table class="table table-hover">';
         html += '<thead><tr><th>Student ID</th><th>Name</th><th>Status</th></tr></thead><tbody>';
         

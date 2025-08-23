@@ -589,7 +589,7 @@ async function loadAttendanceRecords() {
 }
 
 function displayAttendanceRecords(records) {
-    const container = document.getElementById('records-container');
+    const container = document.getElementById('records-results');
     
     if (records.length === 0) {
         container.innerHTML = '<p class="text-center text-muted">No attendance records found for the selected criteria</p>';

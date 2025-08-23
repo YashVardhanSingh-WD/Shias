@@ -7,14 +7,17 @@ const path = require('path');
 const moment = require('moment');
 const multer = require('multer');
 const fs = require('fs');
+
 const FileStore = require('session-file-store')(session);
-const RedisStore = require('connect-redis')(session);
+const { default: RedisStore } = require('connect-redis');
 const { createClient } = require('redis');
 
 const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
+    url: process.env.REDIS_URL || 'redis://localhost:6379'
 });
 redisClient.connect().catch(console.error);
+
+const redisStore = new RedisStore({ client: redisClient });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,7 +32,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(session({
-    store: new RedisStore({ client: redisClient }),
+    store: redisStore,
     secret: process.env.SESSION_SECRET || 'attendance-system-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,

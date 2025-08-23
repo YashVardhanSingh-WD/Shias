@@ -21,33 +21,37 @@ document.addEventListener('DOMContentLoaded', function() {
 // Session debugging function (for development)
 async function checkSessionDebug() {
     try {
-        const response = await fetch('/api/session/check');
+        console.log('[DEBUG] Running checkSessionDebug...');
+        const response = await fetch('/api/session/check', { credentials: 'include' });
+        console.log('[DEBUG] /api/session/check response status:', response.status);
         const sessionData = await response.json();
-        console.log('Session Debug Info:', sessionData);
+        console.log('[DEBUG] Session Debug Info:', sessionData);
     } catch (error) {
-        console.error('Session check error:', error);
+        console.error('[DEBUG] Session check error:', error);
     }
 }
 
 // Authentication check
 async function checkAuth() {
     try {
+        console.log('[DEBUG] Running checkAuth...');
         const response = await fetch('/api/user', {
             credentials: 'include' // Important for session cookies
         });
+        console.log('[DEBUG] /api/user response status:', response.status);
         const user = await response.json();
-        
+        console.log('[DEBUG] /api/user response data:', user);
         if (!user || user.role !== 'admin') {
-            console.log('Auth failed - redirecting to login');
+            console.log('[DEBUG] Auth failed - redirecting to login');
             window.location.href = '/login';
             return;
         }
-        
-        currentUser = user;
-        document.getElementById('admin-name').textContent = user.name;
-        console.log('Auth successful for user:', user.username);
+    currentUser = user;
+    // If you want to show admin name, add an element with id 'admin-name' in your HTML, or skip this line if not needed
+    // document.getElementById('admin-name').textContent = user.name;
+    console.log('[DEBUG] Auth successful for user:', user.username);
     } catch (error) {
-        console.error('Auth check error:', error);
+        console.error('[DEBUG] Auth check error:', error);
         window.location.href = '/login';
     }
 }
@@ -106,57 +110,56 @@ function showSection(sectionName, event) {
 // Dashboard functions
 async function loadDashboard() {
     try {
+        console.log('[DEBUG] Loading dashboard...');
         const [subjectsRes, studentsRes, statsRes] = await Promise.all([
             fetch('/api/subjects'),
             fetch('/api/students'),
             fetch('/api/attendance/stats')
         ]);
-        
+        console.log('[DEBUG] /api/subjects status:', subjectsRes.status);
+        console.log('[DEBUG] /api/students status:', studentsRes.status);
+        console.log('[DEBUG] /api/attendance/stats status:', statsRes.status);
         const subjectsData = await subjectsRes.json();
         const studentsData = await studentsRes.json();
         const statsData = await statsRes.json();
-        
+        console.log('[DEBUG] /api/subjects data:', subjectsData);
+        console.log('[DEBUG] /api/students data:', studentsData);
+        console.log('[DEBUG] /api/attendance/stats data:', statsData);
         // Update dashboard stats
-        document.getElementById('total-subjects').textContent = subjectsData.length;
-        document.getElementById('total-students').textContent = studentsData.length;
-        
+        document.getElementById('total-subjects-dash').textContent = subjectsData.length;
+        document.getElementById('total-students-dash').textContent = studentsData.length;
         // Calculate today's attendance
-        const today = new Date().toISOString().split('T')[0];
         const todayAttendance = statsData.reduce((total, stat) => total + stat.total_classes, 0);
-        document.getElementById('today-attendance').textContent = todayAttendance;
-        
+        document.getElementById('total-attendance-dash').textContent = todayAttendance;
         // Calculate average attendance percentage
         if (statsData.length > 0) {
             const avgPercentage = statsData.reduce((sum, stat) => sum + stat.percentage, 0) / statsData.length;
             document.getElementById('avg-attendance').textContent = avgPercentage.toFixed(1) + '%';
         }
-        
         // Load recent attendance
         loadRecentAttendance();
-        
     } catch (error) {
-        console.error('Error loading dashboard:', error);
+        console.error('[DEBUG] Error loading dashboard:', error);
     }
 }
 
 async function loadRecentAttendance() {
     try {
+        console.log('[DEBUG] Loading recent attendance...');
         const response = await fetch('/api/attendance');
+        console.log('[DEBUG] /api/attendance status:', response.status);
         const attendance = await response.json();
-        
+        console.log('[DEBUG] /api/attendance data:', attendance);
         const recentAttendance = attendance.slice(0, 5);
         const container = document.getElementById('recent-attendance');
-        
         if (recentAttendance.length === 0) {
             container.innerHTML = '<p class="text-muted">No recent attendance records</p>';
             return;
         }
-        
         let html = '<div class="list-group list-group-flush">';
         recentAttendance.forEach(record => {
             const statusClass = record.status === 'present' ? 'text-success' : 'text-danger';
             const statusIcon = record.status === 'present' ? 'fa-check' : 'fa-times';
-            
             html += `
                 <div class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
@@ -170,10 +173,9 @@ async function loadRecentAttendance() {
             `;
         });
         html += '</div>';
-        
         container.innerHTML = html;
     } catch (error) {
-        console.error('Error loading recent attendance:', error);
+        console.error('[DEBUG] Error loading recent attendance:', error);
     }
 }
 

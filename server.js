@@ -62,6 +62,11 @@ app.use((req, res, next) => {
 });
 
 // Set up uploads directory
+// Ensure sessions directory exists for session-file-store
+const SESSIONS_DIR = path.join(__dirname, 'sessions');
+if (!fs.existsSync(SESSIONS_DIR)) {
+    fs.mkdirSync(SESSIONS_DIR);
+}
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
     fs.mkdirSync(UPLOADS_DIR);

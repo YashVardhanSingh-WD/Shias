@@ -424,25 +424,33 @@ app.get('/api/students', requireAuth, (req, res) => {
 });
 
 app.post('/api/students', requireAdmin, (req, res) => {
-    const { name, email, phone } = req.body;
-    
-    // Get the next sequential student ID
-    db.get('SELECT MAX(CAST(student_id AS INTEGER)) as max_id FROM students', (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: 'Database error' });
-        }
-        
-        const nextId = (result.max_id || 0) + 1;
-        const student_id = nextId.toString();
-        
-    db.run('INSERT INTO students (student_id, name, email, phone) VALUES (?, ?, ?, ?)', 
-        [student_id, name, email, phone], function(err) {
-        if (err) {
-            return res.status(500).json({ error: 'Database error' });
-        }
-        res.json({ id: this.lastID, student_id, name, email, phone });
+    const { student_id, name, email, phone } = req.body;
+    if (student_id && student_id.trim() !== "") {
+        // Use provided student_id
+        db.run('INSERT INTO students (student_id, name, email, phone) VALUES (?, ?, ?, ?)', 
+            [student_id, name, email, phone], function(err) {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+            res.json({ id: this.lastID, student_id, name, email, phone });
         });
-    });
+    } else {
+        // Auto-generate student_id
+        db.get('SELECT MAX(CAST(student_id AS INTEGER)) as max_id FROM students', (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+            const nextId = (result.max_id || 0) + 1;
+            const autoId = nextId.toString();
+            db.run('INSERT INTO students (student_id, name, email, phone) VALUES (?, ?, ?, ?)', 
+                [autoId, name, email, phone], function(err) {
+                if (err) {
+                    return res.status(500).json({ error: 'Database error' });
+                }
+                res.json({ id: this.lastID, student_id: autoId, name, email, phone });
+            });
+        });
+    }
 });
 
 app.delete('/api/students/:id', requireAdmin, (req, res) => {

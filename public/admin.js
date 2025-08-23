@@ -322,22 +322,24 @@ function showAddStudentModal() {
 }
 
 async function addStudent() {
+    const student_id = document.getElementById('student-id').value.trim();
     const name = document.getElementById('student-name').value.trim();
     const email = document.getElementById('student-email').value.trim();
     const phone = document.getElementById('student-phone').value.trim();
-    
+
     if (!name) {
         alert('Please enter student name');
         return;
     }
-    
+
     try {
+        const payload = student_id ? { student_id, name, email, phone } : { name, email, phone };
         const response = await fetch('/api/students', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, phone })
+            body: JSON.stringify(payload)
         });
-        
+
         if (response.ok) {
             bootstrap.Modal.getInstance(document.getElementById('addStudentModal')).hide();
             loadStudents();

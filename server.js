@@ -9,15 +9,23 @@ const multer = require('multer');
 const fs = require('fs');
 
 const FileStore = require('session-file-store')(session);
-const { default: RedisStore } = require('connect-redis');
-const { createClient } = require('redis');
+let sessionStore;
 
-const redisClient = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379'
-});
-redisClient.connect().catch(console.error);
-
-const redisStore = new RedisStore({ client: redisClient });
+if (process.env.REDIS_URL && process.env.REDIS_URL.startsWith('redis://')) {
+    // Use Redis if REDIS_URL is valid
+    const { default: RedisStore } = require('connect-redis');
+    const { createClient } = require('redis');
+    const redisClient = createClient({
+        url: process.env.REDIS_URL
+    });
+    redisClient.connect().catch(console.error);
+    sessionStore = new RedisStore({ client: redisClient });
+    console.log('Using Redis session store');
+} else {
+    // Fallback to file store
+    sessionStore = new FileStore();
+    console.log('Using file-based session store');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,7 +40,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(session({
-    store: redisStore,
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || 'attendance-system-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,

@@ -135,8 +135,8 @@ const requireAuth = (req, res, next) => {
     } else {
         if (req.xhr || req.path.startsWith('/api/')) {
             res.status(401).json({ error: 'Authentication required' });
-        } else {
-            res.redirect('/login');
+    } else {
+        res.redirect('/login');
         }
     }
 };
@@ -198,49 +198,29 @@ app.post('/api/login', (req, res) => {
             return res.status(403).json({ error: 'Student login disabled. Use student portal directly.' });
         }
         
-        req.session.user = {
-            id: user.id,
-            username: user.username,
-            name: user.name,
-            role: user.role,
-            student_id: user.student_id
-        };
-        
-        // Force session save and regenerate session ID for security
-        req.session.save((err) => {
+        // Regenerate session ID for security, then set user data and save
+        req.session.regenerate((err) => {
             if (err) {
-                console.error('Session save error:', err);
+                console.error('Session regeneration error:', err);
                 return res.status(500).json({ error: 'Session error' });
             }
-            
-            // Regenerate session ID for security
-            req.session.regenerate((err) => {
+            req.session.user = {
+                id: user.id,
+                username: user.username,
+                name: user.name,
+                role: user.role,
+                student_id: user.student_id
+            };
+            req.session.save((err) => {
                 if (err) {
-                    console.error('Session regeneration error:', err);
+                    console.error('Session save error:', err);
                     return res.status(500).json({ error: 'Session error' });
                 }
-                
-                // Set user data again after regeneration
-                req.session.user = {
-                    id: user.id,
-                    username: user.username,
-                    name: user.name,
-                    role: user.role,
-                    student_id: user.student_id
-                };
-                
-                req.session.save((err) => {
-                    if (err) {
-                        console.error('Final session save error:', err);
-                        return res.status(500).json({ error: 'Session error' });
-                    }
-                    
-                    console.log('Admin login successful:', user.username, 'Session ID:', req.sessionID);
-                    res.json({ 
-                        success: true, 
-                        user: req.session.user,
-                        sessionId: req.sessionID
-                    });
+                console.log('Admin login successful:', user.username, 'Session ID:', req.sessionID);
+                res.json({ 
+                    success: true, 
+                    user: req.session.user,
+                    sessionId: req.sessionID
                 });
             });
         });
@@ -436,12 +416,12 @@ app.post('/api/students', requireAdmin, (req, res) => {
         const nextId = (result.max_id || 0) + 1;
         const student_id = nextId.toString();
         
-        db.run('INSERT INTO students (student_id, name, email, phone) VALUES (?, ?, ?, ?)', 
-            [student_id, name, email, phone], function(err) {
-            if (err) {
-                return res.status(500).json({ error: 'Database error' });
-            }
-            res.json({ id: this.lastID, student_id, name, email, phone });
+    db.run('INSERT INTO students (student_id, name, email, phone) VALUES (?, ?, ?, ?)', 
+        [student_id, name, email, phone], function(err) {
+        if (err) {
+            return res.status(500).json({ error: 'Database error' });
+        }
+        res.json({ id: this.lastID, student_id, name, email, phone });
         });
     });
 });
@@ -480,7 +460,7 @@ app.delete('/api/students/:id', requireAdmin, (req, res) => {
             
             // If no students left, send response immediately
             if (students.length === 0) {
-                res.json({ success: true });
+        res.json({ success: true });
             }
         });
     });

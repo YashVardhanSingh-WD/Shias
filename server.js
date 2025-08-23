@@ -7,6 +7,7 @@ const path = require('path');
 const moment = require('moment');
 const multer = require('multer');
 const fs = require('fs');
+const FileStore = require('session-file-store')(session);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,11 +22,12 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(session({
+    store: new FileStore({}),
     secret: process.env.SESSION_SECRET || 'attendance-system-secret-key-change-in-production',
-    resave: true,
-    saveUninitialized: true,
-    cookie: { 
-        secure: false, // Set to false for now to work on both HTTP and HTTPS
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         sameSite: 'lax'

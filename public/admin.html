@@ -58,8 +58,8 @@
             transition: margin-left 0.3s ease;
         }
         @media (min-width: 768px) {
-            .main-content {
-                padding: 20px;
+        .main-content {
+            padding: 20px;
                 margin-left: 0;
             }
         }
@@ -115,10 +115,10 @@
             font-size: 0.75rem;
         }
         @media (min-width: 768px) {
-            .attendance-toggle {
-                width: 60px;
-                height: 30px;
-                border-radius: 15px;
+        .attendance-toggle {
+            width: 60px;
+            height: 30px;
+            border-radius: 15px;
                 font-size: 0.8rem;
             }
         }
@@ -392,30 +392,30 @@
                 <!-- Dashboard Section -->
                 <div id="dashboard-section" class="section">
                     <h2 class="section-title">Dashboard</h2>
-                    
+
                     <div class="stats-grid">
-                        <div class="card stats-card">
+                            <div class="card stats-card">
                             <div class="card-body">
                                 <i class="fas fa-book"></i>
                                 <h4 id="total-subjects-dash">0</h4>
                                 <p>Total Subjects</p>
                             </div>
                         </div>
-                        <div class="card stats-card">
+                            <div class="card stats-card">
                             <div class="card-body">
                                 <i class="fas fa-user-graduate"></i>
                                 <h4 id="total-students-dash">0</h4>
                                 <p>Total Students</p>
                             </div>
                         </div>
-                        <div class="card stats-card">
+                            <div class="card stats-card">
                             <div class="card-body">
                                 <i class="fas fa-calendar-check"></i>
                                 <h4 id="total-attendance-dash">0</h4>
                                 <p>Attendance Records</p>
                             </div>
                         </div>
-                        <div class="card stats-card">
+                            <div class="card stats-card">
                             <div class="card-body">
                                 <i class="fas fa-bullhorn"></i>
                                 <h4 id="total-announcements-dash">0</h4>
@@ -439,15 +439,15 @@
                                         <button class="btn btn-success btn-custom" onclick="showSection('students')">
                                             <i class="fas fa-user-plus me-2"></i>
                                             Add Student
-                                        </button>
+                                    </button>
                                         <button class="btn btn-info btn-custom" onclick="showSection('attendance')">
                                             <i class="fas fa-calendar-plus me-2"></i>
                                             Mark Attendance
-                                        </button>
+                                    </button>
                                         <button class="btn btn-warning btn-custom" onclick="showChangePasswordModal()">
                                             <i class="fas fa-key me-2"></i>
                                             Change Password
-                                        </button>
+                                    </button>
                                     </div>
                                 </div>
                             </div>
@@ -476,7 +476,7 @@
                             Add Subject
                         </button>
                     </div>
-                    
+
                     <div class="card">
                         <div class="card-body">
                             <div class="table-responsive">
@@ -510,7 +510,7 @@
                             Add Student
                         </button>
                     </div>
-                    
+
                     <div class="card">
                         <div class="card-body">
                             <div class="table-responsive">
@@ -545,18 +545,18 @@
                             <div class="card">
                                 <div class="card-header">
                                     <h5>Select Options</h5>
-                                </div>
-                                <div class="card-body">
+                    </div>
+                        <div class="card-body">
                                     <div class="mb-3">
                                         <label class="form-label">Subject</label>
-                                        <select class="form-select" id="attendance-subject">
+                                    <select class="form-select" id="attendance-subject">
                                             <option value="">Select Subject</option>
-                                        </select>
-                                    </div>
+                                    </select>
+                                </div>
                                     <div class="mb-3">
                                         <label class="form-label">Date</label>
                                         <input type="date" class="form-control" id="attendance-date">
-                                    </div>
+                                </div>
                                     <button class="btn btn-primary w-100" onclick="loadAttendanceForm()">
                                         <i class="fas fa-search me-2"></i>
                                         Load Students
@@ -568,8 +568,8 @@
                             <div class="card">
                                 <div class="card-header">
                                     <h5>Student Attendance</h5>
-                                </div>
-                                <div class="card-body">
+                    </div>
+                        <div class="card-body">
                                     <div id="attendance-form">
                                         <p class="text-muted text-center">Select subject and date to mark attendance</p>
                                     </div>
@@ -588,18 +588,18 @@
                             <div class="card">
                                 <div class="card-header">
                                     <h5>Filter Options</h5>
-                                </div>
-                                <div class="card-body">
+                    </div>
+                        <div class="card-body">
                                     <div class="mb-3">
                                         <label class="form-label">Subject</label>
-                                        <select class="form-select" id="report-subject">
-                                            <option value="">All Subjects</option>
-                                        </select>
-                                    </div>
+                                    <select class="form-select" id="report-subject">
+                                        <option value="">All Subjects</option>
+                                    </select>
+                                </div>
                                     <div class="mb-3">
                                         <label class="form-label">Start Date</label>
-                                        <input type="date" class="form-control" id="report-start-date">
-                                    </div>
+                                    <input type="date" class="form-control" id="report-start-date">
+                                </div>
                                     <div class="mb-3">
                                         <label class="form-label">End Date</label>
                                         <input type="date" class="form-control" id="report-end-date">
@@ -690,7 +690,7 @@
                             Add Announcement
                         </button>
                     </div>
-                    
+
                     <div class="card">
                         <div class="card-body">
                             <div class="table-responsive">

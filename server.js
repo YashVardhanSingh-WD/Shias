@@ -8,6 +8,13 @@ const moment = require('moment');
 const multer = require('multer');
 const fs = require('fs');
 const FileStore = require('session-file-store')(session);
+const RedisStore = require('connect-redis')(session);
+const { createClient } = require('redis');
+
+const redisClient = createClient({
+  url: process.env.REDIS_URL || 'redis://localhost:6379'
+});
+redisClient.connect().catch(console.error);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,7 +29,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(session({
-    store: new FileStore({}),
+    store: new RedisStore({ client: redisClient }),
     secret: process.env.SESSION_SECRET || 'attendance-system-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,

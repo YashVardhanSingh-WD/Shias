@@ -22,10 +22,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(session({
     secret: process.env.SESSION_SECRET || 'attendance-system-secret-key-change-in-production',
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production',
+        secure: false, // Set to false for now to work on both HTTP and HTTPS
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         sameSite: 'lax'
@@ -120,15 +120,21 @@ db.serialize(() => {
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
-    if (req.session.user) {
+    console.log('Session check:', req.sessionID, req.session.user);
+    if (req.session && req.session.user) {
         next();
     } else {
-        res.redirect('/login');
+        if (req.xhr || req.path.startsWith('/api/')) {
+            res.status(401).json({ error: 'Authentication required' });
+        } else {
+            res.redirect('/login');
+        }
     }
 };
 
 const requireAdmin = (req, res, next) => {
-    if (req.session.user && req.session.user.role === 'admin') {
+    console.log('Admin check:', req.sessionID, req.session.user);
+    if (req.session && req.session.user && req.session.user.role === 'admin') {
         next();
     } else {
         res.status(403).json({ error: 'Admin access required' });
@@ -191,18 +197,42 @@ app.post('/api/login', (req, res) => {
             student_id: user.student_id
         };
         
-        // Force session save
+        // Force session save and regenerate session ID for security
         req.session.save((err) => {
             if (err) {
                 console.error('Session save error:', err);
                 return res.status(500).json({ error: 'Session error' });
             }
             
-            console.log('Admin login successful:', user.username, 'Session ID:', req.sessionID);
-            res.json({ 
-                success: true, 
-                user: req.session.user,
-                sessionId: req.sessionID
+            // Regenerate session ID for security
+            req.session.regenerate((err) => {
+                if (err) {
+                    console.error('Session regeneration error:', err);
+                    return res.status(500).json({ error: 'Session error' });
+                }
+                
+                // Set user data again after regeneration
+                req.session.user = {
+                    id: user.id,
+                    username: user.username,
+                    name: user.name,
+                    role: user.role,
+                    student_id: user.student_id
+                };
+                
+                req.session.save((err) => {
+                    if (err) {
+                        console.error('Final session save error:', err);
+                        return res.status(500).json({ error: 'Session error' });
+                    }
+                    
+                    console.log('Admin login successful:', user.username, 'Session ID:', req.sessionID);
+                    res.json({ 
+                        success: true, 
+                        user: req.session.user,
+                        sessionId: req.sessionID
+                    });
+                });
             });
         });
     });

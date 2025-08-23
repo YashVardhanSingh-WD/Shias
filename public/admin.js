@@ -292,7 +292,6 @@ async function loadStudents() {
 }
 
 function showAddStudentModal() {
-    document.getElementById('student-id').value = '';
     document.getElementById('student-name').value = '';
     document.getElementById('student-email').value = '';
     document.getElementById('student-phone').value = '';
@@ -300,13 +299,12 @@ function showAddStudentModal() {
 }
 
 async function addStudent() {
-    const student_id = document.getElementById('student-id').value.trim();
     const name = document.getElementById('student-name').value.trim();
     const email = document.getElementById('student-email').value.trim();
     const phone = document.getElementById('student-phone').value.trim();
     
-    if (!student_id || !name) {
-        alert('Please enter student ID and name');
+    if (!name) {
+        alert('Please enter student name');
         return;
     }
     
@@ -314,7 +312,7 @@ async function addStudent() {
         const response = await fetch('/api/students', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ student_id, name, email, phone })
+            body: JSON.stringify({ name, email, phone })
         });
         
         if (response.ok) {

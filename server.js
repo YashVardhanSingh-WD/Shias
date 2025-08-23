@@ -350,23 +350,64 @@ app.get('/api/students', requireAuth, (req, res) => {
 });
 
 app.post('/api/students', requireAdmin, (req, res) => {
-    const { student_id, name, email, phone } = req.body;
-    db.run('INSERT INTO students (student_id, name, email, phone) VALUES (?, ?, ?, ?)', 
-        [student_id, name, email, phone], function(err) {
+    const { name, email, phone } = req.body;
+    
+    // Get the next sequential student ID
+    db.get('SELECT MAX(CAST(student_id AS INTEGER)) as max_id FROM students', (err, result) => {
         if (err) {
             return res.status(500).json({ error: 'Database error' });
         }
-        res.json({ id: this.lastID, student_id, name, email, phone });
+        
+        const nextId = (result.max_id || 0) + 1;
+        const student_id = nextId.toString();
+        
+        db.run('INSERT INTO students (student_id, name, email, phone) VALUES (?, ?, ?, ?)', 
+            [student_id, name, email, phone], function(err) {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+            res.json({ id: this.lastID, student_id, name, email, phone });
+        });
     });
 });
 
 app.delete('/api/students/:id', requireAdmin, (req, res) => {
     const { id } = req.params;
+    
+    // First delete the student
     db.run('DELETE FROM students WHERE id = ?', [id], function(err) {
         if (err) {
             return res.status(500).json({ error: 'Database error' });
         }
-        res.json({ success: true });
+        
+        // Then reorder the remaining student IDs to be sequential
+        db.all('SELECT id FROM students ORDER BY id', (err, students) => {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+            
+            // Update each student with a sequential ID
+            let updateCount = 0;
+            students.forEach((student, index) => {
+                const newStudentId = (index + 1).toString();
+                db.run('UPDATE students SET student_id = ? WHERE id = ?', [newStudentId, student.id], (updateErr) => {
+                    if (updateErr) {
+                        console.error('Error updating student ID:', updateErr);
+                    }
+                    updateCount++;
+                    
+                    // When all updates are done, send response
+                    if (updateCount === students.length) {
+                        res.json({ success: true });
+                    }
+                });
+            });
+            
+            // If no students left, send response immediately
+            if (students.length === 0) {
+                res.json({ success: true });
+            }
+        });
     });
 });
 

@@ -14,30 +14,63 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
         .login-container {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 40px;
+            padding: 30px 25px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 400px;
         }
+        @media (min-width: 768px) {
+            .login-container {
+                padding: 40px;
+            }
+        }
         .login-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
+        }
+        @media (min-width: 768px) {
+            .login-header {
+                margin-bottom: 30px;
+            }
         }
         .login-icon {
-            font-size: 3rem;
+            font-size: 2.5rem;
             color: #667eea;
             margin-bottom: 15px;
+        }
+        @media (min-width: 768px) {
+            .login-icon {
+                font-size: 3rem;
+            }
+        }
+        .login-header h3 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        @media (min-width: 768px) {
+            .login-header h3 {
+                font-size: 1.75rem;
+                margin-bottom: 10px;
+            }
         }
         .form-control {
             border-radius: 10px;
             border: 2px solid #e9ecef;
             padding: 12px 15px;
             transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        @media (max-width: 767px) {
+            .form-control {
+                padding: 10px 12px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
         }
         .form-control:focus {
             border-color: #667eea;
@@ -52,6 +85,13 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        @media (max-width: 767px) {
+            .btn-login {
+                padding: 12px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
         }
         .btn-login:hover {
             transform: translateY(-2px);
@@ -60,6 +100,7 @@
         .alert {
             border-radius: 10px;
             border: none;
+            font-size: 0.95rem;
         }
         .back-link {
             text-align: center;
@@ -69,9 +110,55 @@
             color: #667eea;
             text-decoration: none;
             font-weight: 500;
+            font-size: 0.95rem;
         }
         .back-link a:hover {
             color: #764ba2;
+        }
+        .form-label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+        @media (min-width: 768px) {
+            .form-label {
+                font-size: 1rem;
+                margin-bottom: 10px;
+            }
+        }
+        .input-group-text {
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-right: none;
+            border-radius: 10px 0 0 10px;
+        }
+        .input-group .form-control {
+            border-left: none;
+            border-radius: 0 10px 10px 0;
+        }
+        .input-group .form-control:focus {
+            border-left: none;
+        }
+        .input-group .form-control:focus + .input-group-text {
+            border-color: #667eea;
+        }
+        .student-note {
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        @media (min-width: 768px) {
+            .student-note {
+                font-size: 0.9rem;
+            }
+        }
+        .student-note a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .student-note a:hover {
+            color: #764ba2;
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -122,7 +209,7 @@
         </div>
 
         <div class="mt-4 p-3 bg-light rounded text-center">
-            <small class="text-muted">Students: No login required. Use the <a href="/student">Student Portal</a>.</small>
+            <small class="text-muted student-note">Students: No login required. Use the <a href="/student">Student Portal</a>.</small>
         </div>
     </div>
 

@@ -527,7 +527,7 @@ function exportReportCSV() {
 }
 
 function displayReport(stats) {
-    const container = document.getElementById('report-container');
+    const container = document.getElementById('report-results');
     
     if (stats.length === 0) {
         container.innerHTML = '<p class="text-center text-muted">No attendance data found</p>';

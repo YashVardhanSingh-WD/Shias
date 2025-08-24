@@ -366,10 +366,6 @@
                         <i class="fas fa-calendar-check me-2"></i>
                         Attendance
                     </a>
-                    <a class="nav-link" href="#" onclick="showSection('reports')">
-                        <i class="fas fa-chart-bar me-2"></i>
-                        Reports
-                    </a>
                     <a class="nav-link" href="#" onclick="showSection('records')">
                         <i class="fas fa-list me-2"></i>
                         Records
@@ -561,6 +557,10 @@
                                         <i class="fas fa-search me-2"></i>
                                         Load Students
                                     </button>
+                                    <button class="btn btn-success w-100 mt-2" onclick="saveAttendance()">
+                                        <i class="fas fa-save me-2"></i>
+                                        Save Attendance
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -579,55 +579,6 @@
                     </div>
                 </div>
 
-                <div id="reports-section" class="section" style="display: none;">
-                    <h2 class="section-title">Attendance Reports</h2>
-                    
-                    <div class="row">
-                        <div class="col-12 col-lg-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5>Filter Options</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <label class="form-label">Subject</label>
-                                        <select class="form-select" id="report-subject">
-                                            <option value="">All Subjects</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Start Date</label>
-                                        <input type="date" class="form-control" id="report-start-date">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">End Date</label>
-                                        <input type="date" class="form-control" id="report-end-date">
-                                    </div>
-                                    <button class="btn btn-primary w-100" onclick="loadReport()">
-                                        <i class="fas fa-search me-2"></i>
-                                        Generate Report
-                                    </button>
-                                    <button class="btn btn-success w-100 mt-2" onclick="exportReportCSV()">
-                                        <i class="fas fa-download me-2"></i>
-                                        Export CSV
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-lg-8">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5>Report Results</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div id="report-results">
-                                        <p class="text-muted text-center">Generate a report to view results</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Records Section -->
                 <div id="records-section" class="section" style="display: none;">
@@ -917,7 +868,20 @@
         }
 
         function logout() {
-            window.location.href = '/logout';
+            // Call the logout function from admin.js
+            if (typeof window.parent.logout === 'function') {
+                window.parent.logout();
+            } else {
+                // Fallback to direct call
+                fetch('/api/logout', { method: 'POST' })
+                    .then(() => {
+                        window.location.href = '/login';
+                    })
+                    .catch(error => {
+                        console.error('Logout error:', error);
+                        window.location.href = '/login';
+                    });
+            }
         }
     </script>
 </body>

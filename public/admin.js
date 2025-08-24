@@ -46,7 +46,7 @@ async function checkAuth() {
             window.location.href = '/login';
             return;
         }
-    currentUser = user;
+        currentUser = user;
     // If you want to show admin name, add an element with id 'admin-name' in your HTML, or skip this line if not needed
     // document.getElementById('admin-name').textContent = user.name;
     console.log('[DEBUG] Auth successful for user:', user.username);
@@ -98,10 +98,8 @@ function showSection(sectionName, event) {
         case 'attendance':
             loadAttendanceSubjects();
             break;
-        case 'reports':
-            loadReportSubjects();
-            break;
         case 'announcements':
+            console.log('Loading announcements section');
             loadAnnouncements();
             break;
     }
@@ -111,31 +109,41 @@ function showSection(sectionName, event) {
 async function loadDashboard() {
     try {
         console.log('[DEBUG] Loading dashboard...');
-        const [subjectsRes, studentsRes, statsRes] = await Promise.all([
+        const [subjectsRes, studentsRes, statsRes, attendanceRes] = await Promise.all([
             fetch('/api/subjects'),
             fetch('/api/students'),
-            fetch('/api/attendance/stats')
+            fetch('/api/attendance/stats').catch(() => null),
+            fetch('/api/attendance').catch(() => null)
         ]);
         console.log('[DEBUG] /api/subjects status:', subjectsRes.status);
         console.log('[DEBUG] /api/students status:', studentsRes.status);
-        console.log('[DEBUG] /api/attendance/stats status:', statsRes.status);
+        console.log('[DEBUG] /api/attendance/stats status:', statsRes ? statsRes.status : 'N/A');
+        console.log('[DEBUG] /api/attendance status:', attendanceRes ? attendanceRes.status : 'N/A');
+        
         const subjectsData = await subjectsRes.json();
         const studentsData = await studentsRes.json();
-        const statsData = await statsRes.json();
+        const statsData = statsRes && statsRes.ok ? await statsRes.json() : [];
+        const attendanceData = attendanceRes && attendanceRes.ok ? await attendanceRes.json() : [];
+        
         console.log('[DEBUG] /api/subjects data:', subjectsData);
         console.log('[DEBUG] /api/students data:', studentsData);
         console.log('[DEBUG] /api/attendance/stats data:', statsData);
+        console.log('[DEBUG] /api/attendance data:', attendanceData);
+        
         // Update dashboard stats
         document.getElementById('total-subjects-dash').textContent = subjectsData.length;
         document.getElementById('total-students-dash').textContent = studentsData.length;
+        
         // Calculate today's attendance
         const todayAttendance = statsData.reduce((total, stat) => total + stat.total_classes, 0);
         document.getElementById('total-attendance-dash').textContent = todayAttendance;
+        
         // Calculate average attendance percentage
         if (statsData.length > 0) {
             const avgPercentage = statsData.reduce((sum, stat) => sum + stat.percentage, 0) / statsData.length;
             document.getElementById('avg-attendance').textContent = avgPercentage.toFixed(1) + '%';
         }
+        
         // Load recent attendance
         loadRecentAttendance();
     } catch (error) {
@@ -146,7 +154,13 @@ async function loadDashboard() {
 async function loadRecentAttendance() {
     try {
         console.log('[DEBUG] Loading recent attendance...');
-        const response = await fetch('/api/attendance');
+        const response = await fetch('/api/attendance').catch(() => null);
+        if (!response || !response.ok) {
+            console.log('[DEBUG] /api/attendance not available or error');
+            const container = document.getElementById('recent-attendance');
+            container.innerHTML = '<p class="text-muted">No recent attendance records</p>';
+            return;
+        }
         console.log('[DEBUG] /api/attendance status:', response.status);
         const attendance = await response.json();
         console.log('[DEBUG] /api/attendance data:', attendance);
@@ -176,6 +190,8 @@ async function loadRecentAttendance() {
         container.innerHTML = html;
     } catch (error) {
         console.error('[DEBUG] Error loading recent attendance:', error);
+        const container = document.getElementById('recent-attendance');
+        container.innerHTML = '<p class="text-muted">Error loading attendance records</p>';
     }
 }
 
@@ -213,18 +229,15 @@ async function loadSubjects() {
 
 function updateSubjectDropdowns() {
     const attendanceSelect = document.getElementById('attendance-subject');
-    const reportSelect = document.getElementById('report-subject');
     const recordsSelect = document.getElementById('records-subject');
     
     // Clear existing options
     attendanceSelect.innerHTML = '<option value="">Choose subject...</option>';
-    reportSelect.innerHTML = '<option value="">All Subjects</option>';
     recordsSelect.innerHTML = '<option value="">All Subjects</option>';
     
     // Add subject options
     subjects.forEach(subject => {
         attendanceSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
-        reportSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
         recordsSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
     });
 }
@@ -326,12 +339,12 @@ async function addStudent() {
     const name = document.getElementById('student-name').value.trim();
     const email = document.getElementById('student-email').value.trim();
     const phone = document.getElementById('student-phone').value.trim();
-
+    
     if (!name) {
         alert('Please enter student name');
         return;
     }
-
+    
     try {
         const payload = student_id ? { student_id, name, email, phone } : { name, email, phone };
         const response = await fetch('/api/students', {
@@ -339,7 +352,7 @@ async function addStudent() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-
+        
         if (response.ok) {
             bootstrap.Modal.getInstance(document.getElementById('addStudentModal')).hide();
             loadStudents();
@@ -482,86 +495,6 @@ async function saveAttendance() {
     }
 }
 
-// Report functions
-function loadReportSubjects() {
-    // Subjects are already loaded in loadSubjects()
-}
-
-async function loadReport() {
-    const subjectId = document.getElementById('report-subject').value;
-    const startDate = document.getElementById('report-start-date').value;
-    const endDate = document.getElementById('report-end-date').value;
-    
-    try {
-        let url = '/api/attendance/stats';
-        const params = new URLSearchParams();
-        
-        if (subjectId) params.append('subject_id', subjectId);
-        if (startDate) params.append('start_date', startDate);
-        if (endDate) params.append('end_date', endDate);
-        
-        if (params.toString()) {
-            url += '?' + params.toString();
-        }
-        
-        const response = await fetch(url);
-        const stats = await response.json();
-        
-        displayReport(stats);
-    } catch (error) {
-        console.error('Error loading report:', error);
-        alert('Error loading report');
-    }
-}
-
-function exportReportCSV() {
-    const subjectId = document.getElementById('report-subject').value;
-    const startDate = document.getElementById('report-start-date').value;
-    const endDate = document.getElementById('report-end-date').value;
-
-    const params = new URLSearchParams();
-    if (subjectId) params.append('subject_id', subjectId);
-    if (startDate) params.append('start_date', startDate);
-    if (endDate) params.append('end_date', endDate);
-
-    const url = '/api/attendance/export' + (params.toString() ? ('?' + params.toString()) : '');
-    window.location.href = url;
-}
-
-function displayReport(stats) {
-    const container = document.getElementById('report-results');
-    
-    if (stats.length === 0) {
-        container.innerHTML = '<p class="text-center text-muted">No attendance data found</p>';
-        return;
-    }
-    
-    let html = '<div class="table-responsive"><table class="table table-hover">';
-    html += '<thead><tr><th>Subject</th><th>Total Classes</th><th>Present</th><th>Absent</th><th>Percentage</th></tr></thead><tbody>';
-    
-    stats.forEach(stat => {
-        const absent = stat.total_classes - stat.present_count;
-        const percentageClass = stat.percentage >= 75 ? 'text-success' : stat.percentage >= 60 ? 'text-warning' : 'text-danger';
-        
-        html += `
-            <tr>
-                <td>${stat.subject_name}</td>
-                <td>${stat.total_classes}</td>
-                <td class="text-success">${stat.present_count}</td>
-                <td class="text-danger">${absent}</td>
-                <td class="${percentageClass}"><strong>${stat.percentage}%</strong></td>
-            </tr>
-        `;
-    });
-    
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-}
-
-function generateReport() {
-    // This would typically generate a PDF or Excel file
-    alert('Report export feature would be implemented here');
-}
 
 // Attendance Records functions
 async function loadAttendanceRecords() {
@@ -752,13 +685,16 @@ async function changePassword() {
 
 // Announcement functions
 async function loadAnnouncements() {
+    console.log('loadAnnouncements called');
     try {
         const response = await fetch('/api/announcements');
+        console.log('loadAnnouncements response status:', response.status);
         if (response.ok) {
             const announcements = await response.json();
+            console.log('Loaded', announcements.length, 'announcements');
             displayAnnouncements(announcements);
         } else {
-            console.error('Failed to load announcements');
+            console.error('Failed to load announcements with status:', response.status);
         }
     } catch (error) {
         console.error('Error loading announcements:', error);
@@ -766,6 +702,7 @@ async function loadAnnouncements() {
 }
 
 function displayAnnouncements(announcements) {
+    console.log('displayAnnouncements called with', announcements.length, 'announcements');
     const container = document.getElementById('announcements-table');
     
     if (announcements.length === 0) {
@@ -829,6 +766,7 @@ function getTypeClass(type) {
 }
 
 function showAddAnnouncementModal() {
+    console.log('showAddAnnouncementModal called');
     document.getElementById('announcement-title').value = '';
     document.getElementById('announcement-content').value = '';
     document.getElementById('announcement-type').value = 'notice';
@@ -842,11 +780,17 @@ function showAddAnnouncementModal() {
 }
 
 function editAnnouncement(id) {
+    console.log('editAnnouncement called with id:', id);
     fetch('/api/announcements')
-        .then(response => response.json())
+        .then(response => {
+            console.log('editAnnouncement fetch response status:', response.status);
+            return response.json();
+        })
         .then(announcements => {
+            console.log('editAnnouncement fetched', announcements.length, 'announcements');
             const announcement = announcements.find(a => a.id === id);
             if (announcement) {
+                console.log('Found announcement to edit:', announcement);
                 document.getElementById('announcement-id').value = announcement.id;
                 document.getElementById('announcement-title').value = announcement.title;
                 document.getElementById('announcement-content').value = announcement.content;
@@ -857,6 +801,8 @@ function editAnnouncement(id) {
                 }
                 document.getElementById('announcementModalLabel').textContent = 'Edit Announcement';
                 new bootstrap.Modal(document.getElementById('announcementModal')).show();
+            } else {
+                console.log('Announcement not found with id:', id);
             }
         })
         .catch(error => {
@@ -866,7 +812,9 @@ function editAnnouncement(id) {
 }
 
 async function saveAnnouncement() {
+    console.log('saveAnnouncement called');
     const id = document.getElementById('announcement-id').value;
+    console.log('Announcement ID:', id);
     const title = document.getElementById('announcement-title').value.trim();
     const content = document.getElementById('announcement-content').value.trim();
     const type = document.getElementById('announcement-type').value;
@@ -876,6 +824,7 @@ async function saveAnnouncement() {
     if (document.getElementById('announcement-status')) {
         is_active = document.getElementById('announcement-status').value;
     }
+    console.log('Announcement data:', { id, title, content, type, priority, is_active });
     if (!title || !content) {
         alert('Please fill in all required fields');
         return;
@@ -892,16 +841,21 @@ async function saveAnnouncement() {
         if (fileInput && fileInput.files.length > 0) {
             formData.append('file', fileInput.files[0]);
         }
+        console.log('Sending request to:', url, 'method:', method);
         const response = await fetch(url, {
             method: method,
             body: formData
         });
+        console.log('Response status:', response.status);
         if (response.ok) {
+            console.log('Announcement saved successfully');
             bootstrap.Modal.getInstance(document.getElementById('announcementModal')).hide();
             loadAnnouncements();
             alert(id ? 'Announcement updated successfully!' : 'Announcement created successfully!');
         } else {
+            console.log('Error response from server');
             const data = await response.json();
+            console.log('Error data:', data);
             alert(data.error || 'Error saving announcement');
         }
     } catch (error) {
@@ -911,6 +865,7 @@ async function saveAnnouncement() {
 }
 
 async function deleteAnnouncement(id) {
+    console.log('deleteAnnouncement called with id:', id);
     if (!confirm('Are you sure you want to delete this announcement?')) {
         return;
     }
@@ -919,12 +874,16 @@ async function deleteAnnouncement(id) {
         const response = await fetch(`/api/announcements/${id}`, {
             method: 'DELETE'
         });
+        console.log('deleteAnnouncement response status:', response.status);
         
         if (response.ok) {
+            console.log('Announcement deleted successfully');
             loadAnnouncements();
             alert('Announcement deleted successfully!');
         } else {
+            console.log('Error response from server');
             const data = await response.json();
+            console.log('Error data:', data);
             alert(data.error || 'Error deleting announcement');
         }
     } catch (error) {

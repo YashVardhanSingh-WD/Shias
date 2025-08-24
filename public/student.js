@@ -197,7 +197,7 @@ async function loadHistory() {
 }
 
 function updateHistoryTable() {
-    const tbody = document.getElementById('history-table');
+    const tbody = document.getElementById('attendance-history');
     tbody.innerHTML = '';
     
     if (attendanceHistory.length === 0) {
@@ -273,35 +273,109 @@ async function loadStatistics() {
     }
 }
 
-function updateStatisticsTable() {
-    const tbody = document.getElementById('statistics-table');
-    tbody.innerHTML = '';
+// Statistics functions
+async function loadStatistics() {
+    try {
+        // Load monthly stats
+        loadMonthlyStats();
+        
+        // Load subject performance
+        loadSubjectPerformance();
+        
+    } catch (error) {
+        console.error('Error loading statistics:', error);
+    }
+}
+
+function loadMonthlyStats() {
+    const container = document.getElementById('monthly-stats');
     
     if (attendanceStats.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No statistics available</td></tr>';
+        container.innerHTML = '<p class="text-muted">No attendance data available</p>';
         return;
     }
     
-    attendanceStats.forEach(stat => {
-        const row = document.createElement('tr');
-        const absent = stat.total_classes - stat.present_count;
-        const percentageClass = stat.percentage >= 75 ? 'text-success' : stat.percentage >= 60 ? 'text-warning' : 'text-danger';
-        const progressClass = stat.percentage >= 75 ? 'bg-success' : stat.percentage >= 60 ? 'bg-warning' : 'bg-danger';
+    // Group data by month
+    const monthlyData = {};
+    attendanceHistory.forEach(record => {
+        const date = new Date(record.date);
+        const month = date.toLocaleString('default', { month: 'short', year: 'numeric' });
         
-        row.innerHTML = `
-            <td><strong>${stat.subject_name}</strong></td>
-            <td>${stat.total_classes}</td>
-            <td class="text-success">${stat.present_count}</td>
-            <td class="text-danger">${absent}</td>
-            <td class="${percentageClass} fw-bold">${stat.percentage}%</td>
-            <td>
-                <div class="progress" style="width: 100px;">
-                    <div class="progress-bar ${progressClass}" style="width: ${stat.percentage}%"></div>
-                </div>
-            </td>
-        `;
-        tbody.appendChild(row);
+        if (!monthlyData[month]) {
+            monthlyData[month] = { present: 0, total: 0 };
+        }
+        
+        monthlyData[month].total++;
+        if (record.status === 'present') {
+            monthlyData[month].present++;
+        }
     });
+    
+    // Convert to array and sort by date
+    const months = Object.keys(monthlyData).sort((a, b) => {
+        return new Date(a) - new Date(b);
+    });
+    
+    // Take last 6 months
+    const last6Months = months.slice(-6);
+    
+    let html = '<div class="list-group list-group-flush">';
+    last6Months.forEach(month => {
+        const data = monthlyData[month];
+        const percentage = ((data.present / data.total) * 100).toFixed(1);
+        const percentageClass = percentage >= 75 ? 'text-success' : percentage >= 60 ? 'text-warning' : 'text-danger';
+        
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${month}</strong>
+                    <br><small class="text-muted">${data.present}/${data.total} classes</small>
+                </div>
+                <div class="text-end">
+                    <div class="${percentageClass} fw-bold">${percentage}%</div>
+                    <div class="progress mt-1" style="width: 80px;">
+                        <div class="progress-bar ${percentageClass.includes('success') ? 'bg-success' : percentageClass.includes('warning') ? 'bg-warning' : 'bg-danger'}"
+                             style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    container.innerHTML = html;
+}
+
+function loadSubjectPerformance() {
+    const container = document.getElementById('subject-performance');
+    
+    if (attendanceStats.length === 0) {
+        container.innerHTML = '<p class="text-muted">No attendance data available</p>';
+        return;
+    }
+    
+    let html = '<div class="list-group list-group-flush">';
+    attendanceStats.forEach(stat => {
+        const percentageClass = stat.percentage >= 75 ? 'text-success' : stat.percentage >= 60 ? 'text-warning' : 'text-danger';
+        
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${stat.subject_name}</strong>
+                </div>
+                <div class="text-end">
+                    <div class="${percentageClass} fw-bold">${stat.percentage}%</div>
+                    <div class="progress mt-1" style="width: 100px;">
+                        <div class="progress-bar ${percentageClass.includes('success') ? 'bg-success' : percentageClass.includes('warning') ? 'bg-warning' : 'bg-danger'}"
+                             style="width: ${stat.percentage}%"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    container.innerHTML = html;
 }
 
 function updateStatisticsFilters() {

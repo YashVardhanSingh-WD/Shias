@@ -58,8 +58,8 @@
             transition: margin-left 0.3s ease;
         }
         @media (min-width: 768px) {
-            .main-content {
-                padding: 20px;
+        .main-content {
+            padding: 20px;
                 margin-left: 0;
             }
         }
@@ -338,31 +338,31 @@
                     </div>
 
                     <div class="stats-grid">
-                        <div class="card stats-card">
+                            <div class="card stats-card">
                             <div class="card-body">
                                 <i class="fas fa-book"></i>
-                                <h4 id="total-subjects">0</h4>
+                                    <h4 id="total-subjects">0</h4>
                                 <p>Total Subjects</p>
                             </div>
                         </div>
-                        <div class="card stats-card">
+                            <div class="card stats-card">
                             <div class="card-body">
                                 <i class="fas fa-calendar-check"></i>
-                                <h4 id="total-classes">0</h4>
+                                    <h4 id="total-classes">0</h4>
                                 <p>Total Classes</p>
                             </div>
                         </div>
-                        <div class="card stats-card">
+                            <div class="card stats-card">
                             <div class="card-body">
                                 <i class="fas fa-check-circle"></i>
-                                <h4 id="present-count">0</h4>
+                                    <h4 id="present-count">0</h4>
                                 <p>Present</p>
                             </div>
                         </div>
-                        <div class="card stats-card">
+                            <div class="card stats-card">
                             <div class="card-body">
                                 <i class="fas fa-percentage"></i>
-                                <h4 id="overall-percentage">0%</h4>
+                                    <h4 id="overall-percentage">0%</h4>
                                 <p>Attendance %</p>
                             </div>
                         </div>
@@ -441,8 +441,8 @@
                                 </div>
                             </div>
                         </div>
+                        </div>
                     </div>
-                </div>
 
                 <!-- Announcements Section -->
                 <div id="announcements-section" class="section" style="display: none;">
@@ -498,7 +498,15 @@
         }
 
         function logout() {
-            window.location.href = '/';
+            // Call the logout API endpoint
+            fetch('/api/logout', { method: 'POST' })
+                .then(() => {
+                    window.location.href = '/login';
+                })
+                .catch(error => {
+                    console.error('Logout error:', error);
+                    window.location.href = '/login';
+                });
         }
     </script>
 </body>

@@ -22,9 +22,9 @@ if (process.env.REDIS_URL && process.env.REDIS_URL.startsWith('redis://')) {
     sessionStore = new RedisStore({ client: redisClient });
     console.log('Using Redis session store');
 } else {
-    // Fallback to file store
-    sessionStore = new FileStore();
-    console.log('Using file-based session store');
+    // Fallback to memory store to avoid file system issues on Windows
+    console.log('Using memory-based session store (not suitable for production)');
+    // Don't set sessionStore, let express-session use its default memory store
 }
 
 const app = express();
@@ -40,17 +40,21 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(session({
-    store: sessionStore,
+    store: sessionStore, // Only used when sessionStore is defined (Redis), otherwise uses default memory store
     secret: process.env.SESSION_SECRET || 'attendance-system-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
-        cookie: {
-            secure: false, // Always false for now to ensure cookies work in all environments
-            httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000, // 24 hours
-            sameSite: 'lax'
-        },
-    name: 'attendance-session'
+    cookie: {
+        secure: false, // Always false for now to ensure cookies work in all environments
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: 'lax'
+    },
+    name: 'attendance-session',
+    // Add error handling for session operations
+    proxy: true,
+    unset: 'destroy',
+    rolling: false
 }));
 
 // Debug: Log session creation and user info
@@ -61,11 +65,30 @@ app.use((req, res, next) => {
     next();
 });
 
+// Session error handling
+app.use((err, req, res, next) => {
+    if (err) {
+        console.error('Session error:', err);
+        // Don't break the request flow, just log the error
+        next();
+    } else {
+        next();
+    }
+});
+
 // Set up uploads directory
 // Ensure sessions directory exists for session-file-store
 const SESSIONS_DIR = path.join(__dirname, 'sessions');
 if (!fs.existsSync(SESSIONS_DIR)) {
-    fs.mkdirSync(SESSIONS_DIR);
+    console.log('Creating sessions directory at:', SESSIONS_DIR);
+    try {
+        fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+        console.log('Sessions directory created successfully');
+    } catch (err) {
+        console.error('Failed to create sessions directory:', err);
+    }
+} else {
+    console.log('Sessions directory already exists at:', SESSIONS_DIR);
 }
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -583,12 +606,14 @@ app.get('/api/attendance/student/:student_id', requireAuth, (req, res) => {
     });
 });
 
+
+
 // Get attendance statistics
 app.get('/api/attendance/stats', requireAuth, (req, res) => {
     const { student_id, subject_id, start_date, end_date } = req.query;
     
     let query = `
-        SELECT 
+        SELECT
             s.name as subject_name,
             COUNT(*) as total_classes,
             SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present_count,
@@ -629,70 +654,6 @@ app.get('/api/attendance/stats', requireAuth, (req, res) => {
     });
 });
 
-// Admin: Export attendance as CSV
-app.get('/api/attendance/export', requireAdmin, (req, res) => {
-    const { subject_id, start_date, end_date } = req.query;
-
-    let query = `
-        SELECT 
-            a.date as date,
-            sub.name as subject_name,
-            s.student_id as student_code,
-            s.name as student_name,
-            a.status as status
-        FROM attendance a
-        JOIN students s ON a.student_id = s.id
-        JOIN subjects sub ON a.subject_id = sub.id
-        WHERE 1=1
-    `;
-    const params = [];
-
-    if (subject_id) {
-        query += ' AND a.subject_id = ?';
-        params.push(subject_id);
-    }
-    if (start_date) {
-        query += ' AND a.date >= ?';
-        params.push(start_date);
-    }
-    if (end_date) {
-        query += ' AND a.date <= ?';
-        params.push(end_date);
-    }
-
-    query += ' ORDER BY a.date DESC, sub.name, s.id';
-
-    db.all(query, params, (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: 'Database error' });
-        }
-
-        const headers = ['Date', 'Subject', 'Student ID', 'Student Name', 'Status'];
-        const csvRows = [headers.join(',')];
-        rows.forEach(r => {
-            // Format date properly for CSV
-            const date = new Date(r.date);
-            const formattedDate = date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            });
-            
-            const line = [formattedDate, r.subject_name, r.student_code, r.student_name, r.status]
-                .map(v => {
-                    const s = String(v ?? '');
-                    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
-                })
-                .join(',');
-            csvRows.push(line);
-        });
-
-        const csv = csvRows.join('\n');
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename="attendance_export.csv"');
-        res.send(csv);
-    });
-});
 
 // Detailed attendance records endpoint
 app.get('/api/attendance/records', requireAuth, (req, res) => {
@@ -905,15 +866,19 @@ app.get('/api/public/attendance/stats', (req, res) => {
 
 // Announcements API
 app.get('/api/announcements', requireAuth, (req, res) => {
+    console.log('GET /api/announcements called');
     db.all('SELECT * FROM announcements WHERE is_active = 1 ORDER BY priority DESC, created_at DESC', (err, announcements) => {
         if (err) {
+            console.log('Database error:', err);
             return res.status(500).json({ error: 'Database error' });
         }
+        console.log('Found', announcements.length, 'announcements');
         res.json(announcements);
     });
 });
 
 app.post('/api/announcements', requireAdmin, upload.single('file'), (req, res) => {
+    console.log('POST /api/announcements called');
     // DEBUG: log req.body and req.file
     console.log('POST /api/announcements req.body:', req.body);
     console.log('POST /api/announcements req.file:', req.file);
@@ -921,23 +886,29 @@ app.post('/api/announcements', requireAdmin, upload.single('file'), (req, res) =
     const content = req.body.content;
     const type = req.body.type;
     const priority = req.body.priority;
+    const is_active = req.body.is_active;
     let file_url = null;
     if (req.file) {
         file_url = '/uploads/' + req.file.filename;
     }
+    console.log('Announcement data:', { title, content, type, priority, is_active, file_url });
     if (!title || !content) {
+        console.log('Title or content missing');
         return res.status(400).json({ error: 'Title and content are required' });
     }
-    db.run('INSERT INTO announcements (title, content, type, priority, file_url) VALUES (?, ?, ?, ?, ?)',
-        [title, content, type || 'notice', priority || 'normal', file_url], function(err) {
+    db.run('INSERT INTO announcements (title, content, type, priority, is_active, file_url) VALUES (?, ?, ?, ?, ?, ?)',
+        [title, content, type || 'notice', priority || 'normal', is_active || 1, file_url], function(err) {
         if (err) {
+            console.log('Database error:', err);
             return res.status(500).json({ error: 'Database error' });
         }
-        res.json({ id: this.lastID, title, content, type, priority, file_url });
+        console.log('Announcement created with ID:', this.lastID);
+        res.json({ id: this.lastID, title, content, type, priority, is_active, file_url });
     });
 });
 
 app.put('/api/announcements/:id', requireAdmin, upload.single('file'), (req, res) => {
+    console.log('PUT /api/announcements/:id called with id:', req.params.id);
     // DEBUG: log req.body and req.file
     console.log('PUT /api/announcements req.body:', req.body);
     console.log('PUT /api/announcements req.file:', req.file);
@@ -951,6 +922,7 @@ app.put('/api/announcements/:id', requireAdmin, upload.single('file'), (req, res
     if (req.file) {
         file_url = '/uploads/' + req.file.filename;
     }
+    console.log('Announcement update data:', { id, title, content, type, priority, is_active, file_url });
     const updateQuery = file_url ?
         'UPDATE announcements SET title = ?, content = ?, type = ?, priority = ?, is_active = ?, file_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
         :
@@ -960,22 +932,28 @@ app.put('/api/announcements/:id', requireAdmin, upload.single('file'), (req, res
         :
         [title, content, type, priority, is_active, id];
     if (!title || !content) {
+        console.log('Title or content missing');
         return res.status(400).json({ error: 'Title and content are required' });
     }
     db.run(updateQuery, params, function(err) {
         if (err) {
+            console.log('Database error:', err);
             return res.status(500).json({ error: 'Database error' });
         }
+        console.log('Announcement updated successfully');
         res.json({ success: true });
     });
 });
 
 app.delete('/api/announcements/:id', requireAdmin, (req, res) => {
+    console.log('DELETE /api/announcements/:id called with id:', req.params.id);
     const { id } = req.params;
     db.run('DELETE FROM announcements WHERE id = ?', [id], function(err) {
         if (err) {
+            console.log('Database error:', err);
             return res.status(500).json({ error: 'Database error' });
         }
+        console.log('Announcement deleted successfully');
         res.json({ success: true });
     });
 });

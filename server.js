@@ -453,14 +453,27 @@ app.get('/api/students', requireAuth, (req, res) => {
 
 app.post('/api/students', requireAdmin, (req, res) => {
     const { student_id, name, email, phone } = req.body;
-    if (student_id && student_id.trim() !== "") {
-        // Use provided student_id
+
+    const insertStudent = (id) => {
         db.run('INSERT INTO students (student_id, name, email, phone) VALUES (?, ?, ?, ?)', 
-            [student_id, name, email, phone], function(err) {
+            [id, name, email, phone], function(err) {
             if (err) {
                 return res.status(500).json({ error: 'Database error' });
             }
-            res.json({ id: this.lastID, student_id, name, email, phone });
+            res.json({ id: this.lastID, student_id: id, name, email, phone });
+        });
+    };
+
+    if (student_id && student_id.trim() !== "") {
+        // Use provided student_id, but first check if it's unique
+        db.get('SELECT id FROM students WHERE student_id = ?', [student_id], (err, row) => {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+            if (row) {
+                return res.status(400).json({ error: 'Student ID already exists' });
+            }
+            insertStudent(student_id);
         });
     } else {
         // Auto-generate student_id
@@ -470,13 +483,7 @@ app.post('/api/students', requireAdmin, (req, res) => {
             }
             const nextId = (result.max_id || 0) + 1;
             const autoId = nextId.toString();
-            db.run('INSERT INTO students (student_id, name, email, phone) VALUES (?, ?, ?, ?)', 
-                [autoId, name, email, phone], function(err) {
-                if (err) {
-                    return res.status(500).json({ error: 'Database error' });
-                }
-                res.json({ id: this.lastID, student_id: autoId, name, email, phone });
-            });
+            insertStudent(autoId);
         });
     }
 });
@@ -611,7 +618,7 @@ app.delete('/api/attendance/date/:date', requireAdmin, (req, res) => {
     const { date } = req.params;
     
     // Validate date format (YYYY-MM-DD)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) {
         return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
     }
     
@@ -644,7 +651,7 @@ app.delete('/api/attendance/range', requireAdmin, (req, res) => {
     const { start_date, end_date } = req.body;
     
     // Validate date format (YYYY-MM-DD)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(start_date) || !/^\d{4}-\d{2}-\d{2}$/.test(end_date)) {
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(start_date) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(end_date)) {
         return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
     }
     

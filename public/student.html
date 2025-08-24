@@ -290,19 +290,19 @@
                     </h5>
                 </div>
                 <nav class="nav flex-column">
-                    <a class="nav-link active" href="#" onclick="showSection('overview')">
+                    <a class="nav-link active" href="#" onclick="showSection('overview')" data-section="overview">
                         <i class="fas fa-tachometer-alt me-2"></i>
                         Overview
                     </a>
-                    <a class="nav-link" href="#" onclick="showSection('history')">
+                    <a class="nav-link" href="#" onclick="showSection('history')" data-section="history">
                         <i class="fas fa-history me-2"></i>
                         Attendance History
                     </a>
-                    <a class="nav-link" href="#" onclick="showSection('statistics')">
+                    <a class="nav-link" href="#" onclick="showSection('statistics')" data-section="statistics">
                         <i class="fas fa-chart-bar me-2"></i>
                         Statistics
                     </a>
-                    <a class="nav-link" href="#" onclick="showSection('announcements')">
+                    <a class="nav-link" href="#" onclick="showSection('announcements')" data-section="announcements">
                         <i class="fas fa-bullhorn me-2"></i>
                         Announcements
                     </a>
@@ -397,6 +397,12 @@
                     <h2 class="section-title">Attendance History</h2>
                     <div class="card">
                         <div class="card-body">
+                            <div class="mb-3">
+                                <label for="history-subject-filter" class="form-label">Filter by Subject:</label>
+                                <select id="history-subject-filter" class="form-select">
+                                    <option value="">All Subjects</option>
+                                </select>
+                            </div>
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
@@ -441,16 +447,17 @@
                                 </div>
                             </div>
                         </div>
-                        </div>
                     </div>
+                </div>
 
                 <!-- Announcements Section -->
                 <div id="announcements-section" class="section" style="display: none;">
                     <h2 class="section-title">Announcements</h2>
                     <div id="announcements-list">
+                        <!-- Announcements will be loaded here -->
                         <div class="text-center text-muted">
-                            <i class="fas fa-bullhorn fa-3x mb-3"></i>
-                            <p>No announcements available</p>
+                            <i class="fas fa-spinner fa-spin fa-3x mb-3"></i>
+                            <p>Loading announcements...</p>
                         </div>
                     </div>
                 </div>
@@ -476,20 +483,9 @@
         });
 
         // Close sidebar when clicking a nav link on mobile
-        function showSection(sectionName) {
-            // Hide all sections
-            document.querySelectorAll('.section').forEach(section => {
-                section.style.display = 'none';
-            });
-            
-            // Show selected section
-            document.getElementById(sectionName + '-section').style.display = 'block';
-            
-            // Update active nav link
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            event.target.classList.add('active');
+        function showSectionAndToggleSidebar(sectionName) {
+            // Call the main showSection function from student.js
+            showSection(sectionName);
             
             // Close sidebar on mobile
             if (window.innerWidth < 768) {

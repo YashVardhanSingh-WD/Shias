@@ -350,27 +350,27 @@
                     </h5>
                 </div>
                 <nav class="nav flex-column">
-                    <a class="nav-link active" href="#" onclick="showSection('dashboard')">
+                    <a class="nav-link active" href="#" onclick="showSectionAndToggleSidebar('dashboard')">
                         <i class="fas fa-tachometer-alt me-2"></i>
                         Dashboard
                     </a>
-                    <a class="nav-link" href="#" onclick="showSection('subjects')">
+                    <a class="nav-link" href="#" onclick="showSectionAndToggleSidebar('subjects')">
                         <i class="fas fa-book me-2"></i>
                         Subjects
                     </a>
-                    <a class="nav-link" href="#" onclick="showSection('students')">
+                    <a class="nav-link" href="#" onclick="showSectionAndToggleSidebar('students')">
                         <i class="fas fa-user-graduate me-2"></i>
                         Students
                     </a>
-                    <a class="nav-link" href="#" onclick="showSection('attendance')">
+                    <a class="nav-link" href="#" onclick="showSectionAndToggleSidebar('attendance')">
                         <i class="fas fa-calendar-check me-2"></i>
                         Attendance
                     </a>
-                    <a class="nav-link" href="#" onclick="showSection('records')">
+                    <a class="nav-link" href="#" onclick="showSectionAndToggleSidebar('records')">
                         <i class="fas fa-list me-2"></i>
                         Records
                     </a>
-                    <a class="nav-link" href="#" onclick="showSection('announcements')">
+                    <a class="nav-link" href="#" onclick="showSectionAndToggleSidebar('announcements')">
                         <i class="fas fa-bullhorn me-2"></i>
                         Announcements
                     </a>
@@ -851,8 +851,15 @@
         });
 
         // Close sidebar when clicking a nav link on mobile
-        // Note: showSection is defined in admin.js with proper section loading logic
-
+        function showSectionAndToggleSidebar(sectionName) {
+            // Call the main showSection function from admin.js
+            showSection(sectionName);
+            
+            // Close sidebar on mobile
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
+        }
     </script>
 </body>
 </html>

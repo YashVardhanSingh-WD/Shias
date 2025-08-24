@@ -124,24 +124,6 @@ async function loadStudentData(studentId) {
         
         // Show the overview section by default
         showSection('overview');
-        
-        // Set up auto-refresh for data every 30 seconds
-        setInterval(() => {
-            console.log('Auto-refreshing student data');
-            loadOverview();
-            // Also refresh the current section data
-            const activeSection = document.querySelector('.nav-link.active');
-            if (activeSection && activeSection.dataset.section) {
-                const sectionId = activeSection.dataset.section;
-                if (sectionId === 'history') {
-                    loadHistory();
-                } else if (sectionId === 'statistics') {
-                    loadStatistics();
-                } else if (sectionId === 'announcements') {
-                    loadAnnouncements();
-                }
-            }
-        }, 30000); // 30 seconds
     } catch (error) {
         console.error('Error initializing student portal:', error);
         alert('Error loading student portal');

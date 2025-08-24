@@ -145,17 +145,32 @@ const upload = multer({ storage: storage });
 // Database setup - Use environment-specific path for Render
 const dbPath = process.env.DATABASE_PATH || (process.env.NODE_ENV === 'production' ? './data/attendance.db' : 'attendance.db');
 
-// Ensure data directory exists for production
-if (process.env.NODE_ENV === 'production') {
-    const dataDir = path.dirname(dbPath);
-    if (!fs.existsSync(dataDir)) {
+// Ensure data directory exists
+const dataDir = path.dirname(dbPath);
+if (dataDir !== '.' && !fs.existsSync(dataDir)) {
+    try {
         fs.mkdirSync(dataDir, { recursive: true });
         console.log(`[INFO] Created data directory: ${dataDir}`);
+    } catch (error) {
+        console.error(`[ERROR] Failed to create data directory: ${dataDir}`, error);
     }
 }
 
-const db = new sqlite3.Database(dbPath);
-console.log(`[INFO] Database connected at: ${dbPath}`);
+// Test database connection with better error handling
+let db;
+try {
+    db = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+            console.error(`[ERROR] Database connection failed: ${err}`);
+            process.exit(1);
+        } else {
+            console.log(`[INFO] Database connected successfully at: ${dbPath}`);
+        }
+    });
+} catch (error) {
+    console.error(`[ERROR] Failed to initialize database: ${error}`);
+    process.exit(1);
+}
 
 // Initialize database tables with indexes
 db.serialize(() => {

@@ -142,8 +142,20 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// Database setup
-const db = new sqlite3.Database('attendance.db');
+// Database setup - Use environment-specific path for Render
+const dbPath = process.env.DATABASE_PATH || (process.env.NODE_ENV === 'production' ? './data/attendance.db' : 'attendance.db');
+
+// Ensure data directory exists for production
+if (process.env.NODE_ENV === 'production') {
+    const dataDir = path.dirname(dbPath);
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+        console.log(`[INFO] Created data directory: ${dataDir}`);
+    }
+}
+
+const db = new sqlite3.Database(dbPath);
+console.log(`[INFO] Database connected at: ${dbPath}`);
 
 // Initialize database tables with indexes
 db.serialize(() => {

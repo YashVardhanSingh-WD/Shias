@@ -4,12 +4,16 @@
   "description": "Attendance Management System with student portal and admin features",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node render-start.js",
     "dev": "nodemon server.js",
+    "server": "node server.js",
+    "worker": "node render-db-worker.js",
+    "maintenance": "node render-maintenance.js",
     "build": "echo 'No build step required'",
     "test": "echo 'No tests specified'",
     "postinstall": "echo 'Installation completed'",
-    "heroku-postbuild": "echo 'Heroku build completed'"
+    "heroku-postbuild": "echo 'Heroku build completed'",
+    "render-build": "npm install && node db-manager.js init"
   },
   "keywords": [
     "attendance",

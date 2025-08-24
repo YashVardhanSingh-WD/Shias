@@ -630,68 +630,67 @@ async function exportRecordsCSV() {
     } catch (error) {
         alert('Error exporting records: ' + error.message);
     }
+// Delete attendance record by ID
+async function deleteAttendanceRecord(id) {
+    console.log('deleteAttendanceRecord called with id:', id);
     
-    // Delete attendance record by ID
-    async function deleteAttendanceRecord(id) {
-        console.log('deleteAttendanceRecord called with id:', id);
-        
-        if (!confirm('Are you sure you want to delete this attendance record? This action cannot be undone.')) {
-            return;
-        }
-        
-        try {
-            const response = await fetch(`/api/attendance/${id}`, {
-                method: 'DELETE'
-            });
-            
-            console.log('deleteAttendanceRecord response status:', response.status);
-            
-            if (response.ok) {
-                console.log('Attendance record deleted successfully');
-                // Reload the attendance records display
-                loadAttendanceRecords();
-                alert('Attendance record deleted successfully!');
-            } else {
-                const data = await response.json();
-                console.log('Error response from server:', data);
-                alert(data.error || 'Error deleting attendance record');
-            }
-        } catch (error) {
-            console.error('Error deleting attendance record:', error);
-            alert('Error deleting attendance record: ' + error.message);
-        }
+    if (!confirm('Are you sure you want to delete this attendance record? This action cannot be undone.')) {
+        return;
     }
     
-    // Delete attendance records by date
-    async function deleteAttendanceByDate(date) {
-        console.log('deleteAttendanceByDate called with date:', date);
+    try {
+        const response = await fetch(`/api/attendance/${id}`, {
+            method: 'DELETE'
+        });
         
-        if (!confirm(`Are you sure you want to delete ALL attendance records for ${date}? This action cannot be undone.`)) {
-            return;
-        }
+        console.log('deleteAttendanceRecord response status:', response.status);
         
-        try {
-            const response = await fetch(`/api/attendance/date/${date}`, {
-                method: 'DELETE'
-            });
-            
-            console.log('deleteAttendanceByDate response status:', response.status);
-            
-            if (response.ok) {
-                console.log('Attendance records deleted successfully');
-                // Reload the attendance records display
-                loadAttendanceRecords();
-                alert('Attendance records deleted successfully!');
-            } else {
-                const data = await response.json();
-                console.log('Error response from server:', data);
-                alert(data.error || 'Error deleting attendance records');
-            }
-        } catch (error) {
-            console.error('Error deleting attendance records:', error);
-            alert('Error deleting attendance records: ' + error.message);
+        if (response.ok) {
+            console.log('Attendance record deleted successfully');
+            // Reload the attendance records display
+            loadAttendanceRecords();
+            alert('Attendance record deleted successfully!');
+        } else {
+            const data = await response.json();
+            console.log('Error response from server:', data);
+            alert(data.error || 'Error deleting attendance record');
         }
+    } catch (error) {
+        console.error('Error deleting attendance record:', error);
+        alert('Error deleting attendance record: ' + error.message);
     }
+}
+
+// Delete attendance records by date
+async function deleteAttendanceByDate(date) {
+    console.log('deleteAttendanceByDate called with date:', date);
+    
+    if (!confirm(`Are you sure you want to delete ALL attendance records for ${date}? This action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/attendance/date/${date}`, {
+            method: 'DELETE'
+        });
+        
+        console.log('deleteAttendanceByDate response status:', response.status);
+        
+        if (response.ok) {
+            console.log('Attendance records deleted successfully');
+            // Reload the attendance records display
+            loadAttendanceRecords();
+            alert('Attendance records deleted successfully!');
+        } else {
+            const data = await response.json();
+            console.log('Error response from server:', data);
+            alert(data.error || 'Error deleting attendance records');
+        }
+    } catch (error) {
+        console.error('Error deleting attendance records:', error);
+        alert('Error deleting attendance records: ' + error.message);
+    }
+}
 }
 
 function formatDate(dateString) {
@@ -728,15 +727,7 @@ async function deleteRecordsByDate() {
                 return;
             }
             
-            const response = await fetch(`/api/attendance?start_date=${date}&end_date=${endDate}`);
-            const records = await response.json();
-            
-            if (records.length === 0) {
-                alert('No attendance records found for the selected date range');
-                return;
-            }
-            
-            // Delete all records for this date range
+            // Delete all records for this date range using the proper DELETE endpoint
             const deleteResponse = await fetch('/api/attendance/range', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
@@ -744,8 +735,9 @@ async function deleteRecordsByDate() {
             });
             
             if (deleteResponse.ok) {
+                const data = await deleteResponse.json();
                 loadAttendanceRecords();
-                alert(`Deleted ${records.length} attendance records for date range ${date} to ${endDate}`);
+                alert(data.message || `Deleted attendance records for date range ${date} to ${endDate}`);
             } else {
                 const data = await deleteResponse.json();
                 alert(data.error || 'Error deleting attendance records');

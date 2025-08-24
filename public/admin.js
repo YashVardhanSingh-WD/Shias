@@ -572,6 +572,8 @@ function displayAttendanceRecords(records) {
         return;
     }
     
+    console.log('Records to display:', records);
+    
     // Group records by date
     const groupedRecords = {};
     records.forEach(record => {
@@ -621,6 +623,9 @@ function displayAttendanceRecords(records) {
             const statusClass = record.status === 'present' ? 'text-success' : 'text-danger';
             const statusIcon = record.status === 'present' ? '✓' : '✗';
             
+            // Log the record to debug
+            console.log('Record in displayAttendanceRecords:', record);
+            
             html += `
                 <tr>
                     <td>${record.student_id}</td>
@@ -628,7 +633,7 @@ function displayAttendanceRecords(records) {
                     <td>${record.subject_name}</td>
                     <td><span class="${statusClass} fw-bold">${statusIcon} ${record.status.toUpperCase()}</span></td>
                     <td>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAttendanceRecord(${record.id})">
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAttendanceRecord(${record.id || 0})" data-record-id="${record.id || 0}">
                             <i class="fas fa-trash"></i> Delete
                         </button>
                     </td>
@@ -677,13 +682,20 @@ async function exportRecordsCSV() {
 async function deleteAttendanceRecord(id) {
     console.log('deleteAttendanceRecord called with id:', id);
     
+    if (!id || id === 0) {
+        console.error('Invalid attendance record ID:', id);
+        alert('Error: Invalid attendance record ID');
+        return;
+    }
+    
     if (!confirm('Are you sure you want to delete this attendance record? This action cannot be undone.')) {
         return;
     }
     
     try {
         const response = await fetch(`/api/attendance/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
         });
         
         console.log('deleteAttendanceRecord response status:', response.status);
@@ -694,7 +706,7 @@ async function deleteAttendanceRecord(id) {
             loadAttendanceRecords();
             alert('Attendance record deleted successfully!');
         } else {
-            const data = await response.json();
+            const data = await response.json().catch(() => ({ error: 'Unknown error' }));
             console.log('Error response from server:', data);
             alert(data.error || 'Error deleting attendance record');
         }

@@ -9,6 +9,29 @@ let currentStudentId = null;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Student portal loaded - starting public access');
     initPublicStudentAccess();
+    
+    // Add event listeners for navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const section = this.dataset.section;
+            showSection(section);
+        });
+    });
+    
+    // Set up auto-refresh for student data every 30 seconds
+    setInterval(() => {
+        if (currentStudentId) {
+            console.log('Auto-refreshing student data...');
+            loadStudentData(currentStudentId);
+            
+            // Also refresh the current active section
+            const activeSection = document.querySelector('.nav-link.active')?.dataset.section;
+            if (activeSection) {
+                refreshActiveSection(activeSection);
+            }
+        }
+    }, 30000); // 30 seconds
 });
 
 // Public student access bootstrap
@@ -17,30 +40,108 @@ async function initPublicStudentAccess() {
     const providedId = params.get('student_id');
 
     if (!providedId) {
-        const entered = prompt('Enter your Student ID');
-        if (!entered) {
-            window.location.href = '/';
-            return;
-        }
-        currentStudentId = entered.trim();
-        window.history.replaceState({}, '', `/student?student_id=${encodeURIComponent(currentStudentId)}`);
+        // Create a modal for student ID input instead of using prompt
+        const modalHtml = `
+            <div class="modal fade" id="studentIdModal" tabindex="-1" aria-labelledby="studentIdModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="studentIdModalLabel">Student Portal</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="studentIdInput" class="form-label">Enter your Student ID</label>
+                                <input type="text" class="form-control" id="studentIdInput" placeholder="Student ID">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="submitStudentId">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to the document
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHtml;
+        document.body.appendChild(modalContainer);
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('studentIdModal'));
+        modal.show();
+        
+        // Handle submit button click
+        document.getElementById('submitStudentId').addEventListener('click', function() {
+            const entered = document.getElementById('studentIdInput').value;
+            if (!entered) {
+                return;
+            }
+            currentStudentId = entered.trim();
+            window.history.replaceState({}, '', `/student.html?student_id=${encodeURIComponent(currentStudentId)}`);
+            modal.hide();
+            loadStudentData(currentStudentId);
+        });
+        
+        // Handle modal close/cancel
+        document.getElementById('studentIdModal').addEventListener('hidden.bs.modal', function() {
+            if (!currentStudentId) {
+                window.location.href = '/';
+            }
+        });
+        
+        return; // Exit here and wait for modal interaction
     } else {
         currentStudentId = providedId.trim();
+        loadStudentData(currentStudentId);
     }
 
+    // The rest of the function is now handled by loadStudentData
+};
+
+// Load student data and initialize the portal
+async function loadStudentData(studentId) {
     try {
-        const res = await fetch(`/api/public/student/${encodeURIComponent(currentStudentId)}`);
+        console.log('Loading student data for ID:', studentId);
+        currentStudentId = studentId; // Ensure currentStudentId is set globally
+        
+        const res = await fetch(`/api/public/student/${encodeURIComponent(studentId)}`);
         if (!res.ok) {
             alert('Student not found. Please check your Student ID.');
             window.location.href = '/';
             return;
         }
         const student = await res.json();
+        console.log('Student data loaded:', student);
         document.getElementById('student-name').textContent = student.name;
         document.getElementById('student-id').textContent = student.student_id || 'N/A';
 
         await loadSubjects();
         await loadOverview();
+        await loadAnnouncements(); // Load announcements
+        
+        // Show the overview section by default
+        showSection('overview');
+        
+        // Set up auto-refresh for data every 30 seconds
+        setInterval(() => {
+            console.log('Auto-refreshing student data');
+            loadOverview();
+            // Also refresh the current section data
+            const activeSection = document.querySelector('.nav-link.active');
+            if (activeSection && activeSection.dataset.section) {
+                const sectionId = activeSection.dataset.section;
+                if (sectionId === 'history') {
+                    loadHistory();
+                } else if (sectionId === 'statistics') {
+                    loadStatistics();
+                } else if (sectionId === 'announcements') {
+                    loadAnnouncements();
+                }
+            }
+        }, 30000); // 30 seconds
     } catch (error) {
         console.error('Error initializing student portal:', error);
         alert('Error loading student portal');
@@ -54,35 +155,55 @@ function logout() {
 }
 
 // Navigation functions
-function showSection(sectionName) {
+function showSection(sectionId) {
+    console.log(`Showing section: ${sectionId}`);
     // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
     });
     
-    // Show selected section
-    document.getElementById(sectionName + '-section').style.display = 'block';
+    // Show the selected section
+    const sectionElement = document.getElementById(sectionId + '-section');
+    console.log(`Section element for ${sectionId}:`, sectionElement);
+    if (sectionElement) {
+        sectionElement.style.display = 'block';
+    } else {
+        console.error(`Section element not found for ID: ${sectionId}-section`);
+    }
     
-    // Update active nav link
+    // Update active state in sidebar
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
-    event.target.classList.add('active');
+    const navLink = document.querySelector(`.nav-link[data-section="${sectionId}"]`);
+    console.log(`Nav link for ${sectionId}:`, navLink);
+    if (navLink) {
+        navLink.classList.add('active');
+    } else {
+        console.error(`Nav link not found for section: ${sectionId}`);
+    }
     
-    // Load section-specific data
-    switch(sectionName) {
-        case 'overview':
-            loadOverview();
-            break;
-        case 'history':
-            loadHistory();
-            break;
-        case 'statistics':
-            loadStatistics();
-            break;
-        case 'announcements':
-            loadAnnouncements();
-            break;
+    // Load data based on section
+    console.log(`Loading data for section: ${sectionId}`);
+    refreshActiveSection(sectionId);
+}
+
+/**
+ * Refreshes the data for the currently active section without changing the UI
+ * @param {string} sectionId - The section to refresh ('overview', 'history', 'statistics', 'announcements')
+ */
+function refreshActiveSection(sectionId) {
+    console.log('Refreshing section:', sectionId);
+    
+    if (sectionId === 'overview') {
+        loadOverview();
+    } else if (sectionId === 'history') {
+        loadHistory();
+    } else if (sectionId === 'statistics') {
+        console.log('About to call loadStatistics()');
+        loadStatistics();
+    } else if (sectionId === 'announcements') {
+        loadAnnouncements();
     }
 }
 
@@ -193,6 +314,7 @@ async function loadHistory() {
         
     } catch (error) {
         console.error('Error loading history:', error);
+        document.getElementById('attendance-history').innerHTML = '<tr><td colspan="3" class="text-center text-muted">Error loading attendance records</td></tr>';
     }
 }
 
@@ -233,7 +355,7 @@ function updateHistoryFilters() {
 
 function filterHistory() {
     const selectedSubject = document.getElementById('history-subject-filter').value;
-    const tbody = document.getElementById('history-table');
+    const tbody = document.getElementById('attendance-history');
     tbody.innerHTML = '';
     
     let filteredHistory = attendanceHistory;
@@ -262,24 +384,35 @@ function filterHistory() {
 // Statistics functions
 async function loadStatistics() {
     try {
+        console.log('Starting loadStatistics function');
+        
+        if (!currentStudentId) {
+            console.error('No student ID available for statistics');
+            return;
+        }
+        
+        // Fetch attendance stats
+        console.log('Fetching attendance stats for student ID:', currentStudentId);
         const response = await fetch(`/api/public/attendance/stats?student_id=${encodeURIComponent(currentStudentId)}`);
-        attendanceStats = await response.json();
+        const statsData = await response.json();
+        console.log('Received attendance stats:', statsData);
+        attendanceStats = statsData;
         
-        updateStatisticsTable();
-        updateStatisticsFilters();
+        // Fetch attendance history if not already loaded
+        if (!attendanceHistory || attendanceHistory.length === 0) {
+            console.log('Fetching attendance history');
+            const historyResponse = await fetch(`/api/public/attendance/student/${encodeURIComponent(currentStudentId)}`);
+            const historyData = await historyResponse.json();
+            console.log('Received attendance history:', historyData);
+            attendanceHistory = historyData;
+        } else {
+            console.log('Using existing attendance history');
+        }
         
-    } catch (error) {
-        console.error('Error loading statistics:', error);
-    }
-}
-
-// Statistics functions
-async function loadStatistics() {
-    try {
-        // Load monthly stats
+        // Load monthly stats and subject performance
+        console.log('Loading monthly stats');
         loadMonthlyStats();
-        
-        // Load subject performance
+        console.log('Loading subject performance');
         loadSubjectPerformance();
         
     } catch (error) {
@@ -287,19 +420,32 @@ async function loadStatistics() {
     }
 }
 
+// Update statistics filters
+function updateStatisticsFilters() {
+    // Implementation for statistics filters if needed
+    console.log('Statistics filters updated');
+}
+
 function loadMonthlyStats() {
+    console.log('Inside loadMonthlyStats function');
     const container = document.getElementById('monthly-stats');
+    console.log('Monthly stats container:', container);
     
-    if (attendanceStats.length === 0) {
+    if (!attendanceHistory || attendanceHistory.length === 0) {
+        console.log('No attendance history data available');
         container.innerHTML = '<p class="text-muted">No attendance data available</p>';
         return;
     }
     
+    console.log('Processing attendance history for monthly stats, records:', attendanceHistory.length);
+    
     // Group data by month
     const monthlyData = {};
     attendanceHistory.forEach(record => {
+        console.log('Processing record:', record);
         const date = new Date(record.date);
         const month = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+        console.log('Extracted month:', month);
         
         if (!monthlyData[month]) {
             monthlyData[month] = { present: 0, total: 0 };
@@ -310,6 +456,8 @@ function loadMonthlyStats() {
             monthlyData[month].present++;
         }
     });
+    
+    console.log('Monthly data processed:', monthlyData);
     
     // Convert to array and sort by date
     const months = Object.keys(monthlyData).sort((a, b) => {
@@ -347,15 +495,21 @@ function loadMonthlyStats() {
 }
 
 function loadSubjectPerformance() {
+    console.log('Inside loadSubjectPerformance function');
     const container = document.getElementById('subject-performance');
+    console.log('Subject performance container:', container);
     
-    if (attendanceStats.length === 0) {
+    if (!attendanceStats || attendanceStats.length === 0) {
+        console.log('No attendance stats data available');
         container.innerHTML = '<p class="text-muted">No attendance data available</p>';
         return;
     }
     
+    console.log('Processing attendance stats for subject performance, stats:', attendanceStats);
+    
     let html = '<div class="list-group list-group-flush">';
     attendanceStats.forEach(stat => {
+        console.log('Processing stat:', stat);
         const percentageClass = stat.percentage >= 75 ? 'text-success' : stat.percentage >= 60 ? 'text-warning' : 'text-danger';
         
         html += `
@@ -375,7 +529,9 @@ function loadSubjectPerformance() {
     });
     html += '</div>';
     
+    console.log('Generated HTML for subject performance:', html);
     container.innerHTML = html;
+    console.log('HTML set for subject performance');
 }
 
 function updateStatisticsFilters() {
@@ -455,7 +611,7 @@ async function loadAnnouncements() {
 }
 
 function displayAnnouncements(announcements) {
-    const container = document.getElementById('announcements-container');
+    const container = document.getElementById('announcements-list');
     
     if (announcements.length === 0) {
         container.innerHTML = `

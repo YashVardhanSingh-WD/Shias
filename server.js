@@ -553,6 +553,34 @@ app.get('/api/attendance', requireAuth, (req, res) => {
     });
 });
 
+// Delete attendance record by ID
+app.delete('/api/attendance/:id', requireAdmin, (req, res) => {
+    const { id } = req.params;
+    
+    // First check if the record exists
+    db.get('SELECT * FROM attendance WHERE id = ?', [id], (err, record) => {
+        if (err) {
+            console.log('Database error when fetching attendance record:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        
+        if (!record) {
+            return res.status(404).json({ error: 'Attendance record not found' });
+        }
+        
+        // Delete the record
+        db.run('DELETE FROM attendance WHERE id = ?', [id], function(err) {
+            if (err) {
+                console.log('Database error when deleting attendance record:', err);
+                return res.status(500).json({ error: 'Database error' });
+            }
+            
+            console.log('Attendance record deleted successfully, ID:', id);
+            res.json({ success: true, message: 'Attendance record deleted successfully' });
+        });
+    });
+});
+
 app.post('/api/attendance', requireAdmin, (req, res) => {
     const { subject_id, date, attendance_data } = req.body;
     

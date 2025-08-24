@@ -846,7 +846,7 @@
         });
 
         // Close sidebar when clicking a nav link on mobile
-        function showSection(sectionName) {
+        function showSection(sectionName, event) {
             // Hide all sections
             document.querySelectorAll('.section').forEach(section => {
                 section.style.display = 'none';
@@ -859,7 +859,9 @@
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
             });
-            event.target.classList.add('active');
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
             
             // Close sidebar on mobile
             if (window.innerWidth < 768) {
@@ -867,22 +869,6 @@
             }
         }
 
-        function logout() {
-            // Call the logout function from admin.js
-            if (typeof window.parent.logout === 'function') {
-                window.parent.logout();
-            } else {
-                // Fallback to direct call
-                fetch('/api/logout', { method: 'POST' })
-                    .then(() => {
-                        window.location.href = '/login';
-                    })
-                    .catch(error => {
-                        console.error('Logout error:', error);
-                        window.location.href = '/login';
-                    });
-            }
-        }
     </script>
 </body>
 </html>

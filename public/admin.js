@@ -4,6 +4,16 @@ let subjects = [];
 let students = [];
 let attendanceData = {};
 
+// Logout function
+async function logout() {
+    try {
+        await fetch('/api/logout', { method: 'POST' });
+        window.location.href = '/login';
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+}
+
 // Initialize admin panel
 document.addEventListener('DOMContentLoaded', function() {
     checkAuth();
@@ -53,16 +63,6 @@ async function checkAuth() {
     } catch (error) {
         console.error('[DEBUG] Auth check error:', error);
         window.location.href = '/login';
-    }
-}
-
-// Logout function
-async function logout() {
-    try {
-        await fetch('/api/logout', { method: 'POST' });
-        window.location.href = '/login';
-    } catch (error) {
-        console.error('Logout error:', error);
     }
 }
 
@@ -570,6 +570,7 @@ function displayAttendanceRecords(records) {
                                         <th>Name</th>
                                         <th>Subject</th>
                                         <th>Status</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -585,6 +586,11 @@ function displayAttendanceRecords(records) {
                     <td>${record.name}</td>
                     <td>${record.subject_name}</td>
                     <td><span class="${statusClass} fw-bold">${statusIcon} ${record.status.toUpperCase()}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAttendanceRecord(${record.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
                 </tr>
             `;
         });
@@ -623,6 +629,37 @@ async function exportRecordsCSV() {
         window.open(url, '_blank');
     } catch (error) {
         alert('Error exporting records: ' + error.message);
+    }
+    
+    // Delete attendance record by ID
+    async function deleteAttendanceRecord(id) {
+        console.log('deleteAttendanceRecord called with id:', id);
+        
+        if (!confirm('Are you sure you want to delete this attendance record? This action cannot be undone.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/attendance/${id}`, {
+                method: 'DELETE'
+            });
+            
+            console.log('deleteAttendanceRecord response status:', response.status);
+            
+            if (response.ok) {
+                console.log('Attendance record deleted successfully');
+                // Reload the attendance records display
+                loadAttendanceRecords();
+                alert('Attendance record deleted successfully!');
+            } else {
+                const data = await response.json();
+                console.log('Error response from server:', data);
+                alert(data.error || 'Error deleting attendance record');
+            }
+        } catch (error) {
+            console.error('Error deleting attendance record:', error);
+            alert('Error deleting attendance record: ' + error.message);
+        }
     }
 }
 

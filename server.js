@@ -581,6 +581,77 @@ app.delete('/api/attendance/:id', requireAdmin, (req, res) => {
     });
 });
 
+// Delete attendance records by date
+app.delete('/api/attendance/date/:date', requireAdmin, (req, res) => {
+    const { date } = req.params;
+    
+    // Validate date format (YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
+    }
+    
+    // First check if any records exist for this date
+    db.all('SELECT * FROM attendance WHERE date = ?', [date], (err, records) => {
+        if (err) {
+            console.log('Database error when fetching attendance records:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        
+        if (records.length === 0) {
+            return res.status(404).json({ error: 'No attendance records found for this date' });
+        }
+        
+        // Delete all records for this date
+        db.run('DELETE FROM attendance WHERE date = ?', [date], function(err) {
+            if (err) {
+                console.log('Database error when deleting attendance records:', err);
+                return res.status(500).json({ error: 'Database error' });
+            }
+            
+            console.log(`Deleted ${records.length} attendance records for date: ${date}`);
+            res.json({ success: true, message: `Deleted ${records.length} attendance records for date ${date}` });
+        });
+    });
+});
+
+// Delete attendance records by date range
+app.delete('/api/attendance/range', requireAdmin, (req, res) => {
+    const { start_date, end_date } = req.body;
+    
+    // Validate date format (YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start_date) || !/^\d{4}-\d{2}-\d{2}$/.test(end_date)) {
+        return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
+    }
+    
+    // Validate date range
+    if (new Date(end_date) < new Date(start_date)) {
+        return res.status(400).json({ error: 'End date must be after start date' });
+    }
+    
+    // First check if any records exist for this date range
+    db.all('SELECT * FROM attendance WHERE date BETWEEN ? AND ?', [start_date, end_date], (err, records) => {
+        if (err) {
+            console.log('Database error when fetching attendance records:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        
+        if (records.length === 0) {
+            return res.status(404).json({ error: 'No attendance records found for this date range' });
+        }
+        
+        // Delete all records for this date range
+        db.run('DELETE FROM attendance WHERE date BETWEEN ? AND ?', [start_date, end_date], function(err) {
+            if (err) {
+                console.log('Database error when deleting attendance records:', err);
+                return res.status(500).json({ error: 'Database error' });
+            }
+            
+            console.log(`Deleted ${records.length} attendance records for date range: ${start_date} to ${end_date}`);
+            res.json({ success: true, message: `Deleted ${records.length} attendance records for date range ${start_date} to ${end_date}` });
+        });
+    });
+});
+
 app.post('/api/attendance', requireAdmin, (req, res) => {
     const { subject_id, date, attendance_data } = req.body;
     

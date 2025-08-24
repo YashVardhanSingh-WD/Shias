@@ -661,16 +661,103 @@ async function exportRecordsCSV() {
             alert('Error deleting attendance record: ' + error.message);
         }
     }
+    
+    // Delete attendance records by date
+    async function deleteAttendanceByDate(date) {
+        console.log('deleteAttendanceByDate called with date:', date);
+        
+        if (!confirm(`Are you sure you want to delete ALL attendance records for ${date}? This action cannot be undone.`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/attendance/date/${date}`, {
+                method: 'DELETE'
+            });
+            
+            console.log('deleteAttendanceByDate response status:', response.status);
+            
+            if (response.ok) {
+                console.log('Attendance records deleted successfully');
+                // Reload the attendance records display
+                loadAttendanceRecords();
+                alert('Attendance records deleted successfully!');
+            } else {
+                const data = await response.json();
+                console.log('Error response from server:', data);
+                alert(data.error || 'Error deleting attendance records');
+            }
+        } catch (error) {
+            console.error('Error deleting attendance records:', error);
+            alert('Error deleting attendance records: ' + error.message);
+        }
+    }
 }
 
 function formatDate(dateString) {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
     });
+}
+
+// Delete attendance records by date
+async function deleteRecordsByDate() {
+    const date = document.getElementById('records-start-date').value;
+    
+    if (!date) {
+        alert('Please select a date first');
+        return;
+    }
+    
+    // Check if end date is also selected, if so, we'll delete records for all dates in the range
+    const endDate = document.getElementById('records-end-date').value;
+    
+    if (endDate && endDate < date) {
+        alert('End date must be after start date');
+        return;
+    }
+    
+    try {
+        if (endDate && endDate !== date) {
+            // Delete records for a date range
+            if (!confirm(`Are you sure you want to delete ALL attendance records between ${date} and ${endDate}? This action cannot be undone.`)) {
+                return;
+            }
+            
+            const response = await fetch(`/api/attendance?start_date=${date}&end_date=${endDate}`);
+            const records = await response.json();
+            
+            if (records.length === 0) {
+                alert('No attendance records found for the selected date range');
+                return;
+            }
+            
+            // Delete all records for this date range
+            const deleteResponse = await fetch('/api/attendance/range', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start_date: date, end_date: endDate })
+            });
+            
+            if (deleteResponse.ok) {
+                loadAttendanceRecords();
+                alert(`Deleted ${records.length} attendance records for date range ${date} to ${endDate}`);
+            } else {
+                const data = await deleteResponse.json();
+                alert(data.error || 'Error deleting attendance records');
+            }
+        } else {
+            // Delete records for a single date
+            await deleteAttendanceByDate(date);
+        }
+    } catch (error) {
+        console.error('Error deleting attendance records:', error);
+        alert('Error deleting attendance records: ' + error.message);
+    }
 }
 
 // Password change functions

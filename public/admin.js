@@ -84,6 +84,18 @@ function showSection(sectionName, event) {
         event.target.classList.add('active');
     }
     
+    // Close sidebar on mobile
+    if (window.innerWidth < 768) {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        if (sidebar && sidebar.classList.contains('show')) {
+            sidebar.classList.remove('show');
+        }
+        if (overlay && overlay.classList.contains('show')) {
+            overlay.classList.remove('show');
+        }
+    }
+    
     // Load section-specific data
     switch(sectionName) {
         case 'dashboard':
@@ -98,6 +110,9 @@ function showSection(sectionName, event) {
         case 'attendance':
             loadAttendanceSubjects();
             break;
+        case 'records':
+            // Records section doesn't need initial data load
+            break;
         case 'announcements':
             console.log('Loading announcements section');
             loadAnnouncements();
@@ -109,26 +124,30 @@ function showSection(sectionName, event) {
 async function loadDashboard() {
     try {
         console.log('[DEBUG] Loading dashboard...');
-        const [subjectsRes, studentsRes, statsRes, attendanceRes] = await Promise.all([
+        const [subjectsRes, studentsRes, statsRes, attendanceRes, announcementsRes] = await Promise.all([
             fetch('/api/subjects'),
             fetch('/api/students'),
             fetch('/api/attendance/stats').catch(() => null),
-            fetch('/api/attendance').catch(() => null)
+            fetch('/api/attendance').catch(() => null),
+            fetch('/api/announcements').catch(() => null)
         ]);
         console.log('[DEBUG] /api/subjects status:', subjectsRes.status);
         console.log('[DEBUG] /api/students status:', studentsRes.status);
         console.log('[DEBUG] /api/attendance/stats status:', statsRes ? statsRes.status : 'N/A');
         console.log('[DEBUG] /api/attendance status:', attendanceRes ? attendanceRes.status : 'N/A');
+        console.log('[DEBUG] /api/announcements status:', announcementsRes ? announcementsRes.status : 'N/A');
         
         const subjectsData = await subjectsRes.json();
         const studentsData = await studentsRes.json();
         const statsData = statsRes && statsRes.ok ? await statsRes.json() : [];
         const attendanceData = attendanceRes && attendanceRes.ok ? await attendanceRes.json() : [];
+        const announcementsData = announcementsRes && announcementsRes.ok ? await announcementsRes.json() : [];
         
         console.log('[DEBUG] /api/subjects data:', subjectsData);
         console.log('[DEBUG] /api/students data:', studentsData);
         console.log('[DEBUG] /api/attendance/stats data:', statsData);
         console.log('[DEBUG] /api/attendance data:', attendanceData);
+        console.log('[DEBUG] /api/announcements data:', announcementsData);
         
         // Update dashboard stats
         document.getElementById('total-subjects-dash').textContent = subjectsData.length;
@@ -138,10 +157,16 @@ async function loadDashboard() {
         const todayAttendance = statsData.reduce((total, stat) => total + stat.total_classes, 0);
         document.getElementById('total-attendance-dash').textContent = todayAttendance;
         
+        // Update announcements count
+        const activeAnnouncements = announcementsData.filter(a => a.is_active).length;
+        document.getElementById('total-announcements-dash').textContent = activeAnnouncements;
+        
         // Calculate average attendance percentage
         if (statsData.length > 0) {
             const avgPercentage = statsData.reduce((sum, stat) => sum + stat.percentage, 0) / statsData.length;
-            document.getElementById('avg-attendance').textContent = avgPercentage.toFixed(1) + '%';
+            if (document.getElementById('avg-attendance')) {
+                document.getElementById('avg-attendance').textContent = avgPercentage.toFixed(1) + '%';
+            }
         }
         
         // Load recent attendance

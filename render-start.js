@@ -26,34 +26,68 @@ function initializeBasicDatabase(dbPath) {
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     student_id TEXT UNIQUE NOT NULL,
                     name TEXT NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
+                    email TEXT,
                     phone TEXT,
-                    course TEXT,
-                    year INTEGER,
-                    section TEXT,
-                    profile_image TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )`, (err) => {
                     if (err) console.error('[RENDER-START] Error creating students table:', err);
                     else console.log('[RENDER-START] Students table ready');
                 });
                 
+                // Subjects table
+                db.run(`CREATE TABLE IF NOT EXISTS subjects (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )`, (err) => {
+                    if (err) console.error('[RENDER-START] Error creating subjects table:', err);
+                    else console.log('[RENDER-START] Subjects table ready');
+                });
+                
                 // Attendance table
                 db.run(`CREATE TABLE IF NOT EXISTS attendance (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    student_id TEXT NOT NULL,
+                    student_id INTEGER,
+                    subject_id INTEGER,
                     date DATE NOT NULL,
-                    time_in TIME,
-                    time_out TIME,
                     status TEXT DEFAULT 'present',
-                    notes TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (student_id) REFERENCES students (student_id),
-                    UNIQUE(student_id, date)
+                    FOREIGN KEY (student_id) REFERENCES students (id),
+                    FOREIGN KEY (subject_id) REFERENCES subjects (id)
                 )`, (err) => {
                     if (err) console.error('[RENDER-START] Error creating attendance table:', err);
                     else console.log('[RENDER-START] Attendance table ready');
+                });
+                
+                // Users table (admin and students)
+                db.run(`CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    student_id TEXT UNIQUE,
+                    role TEXT DEFAULT 'student',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )`, (err) => {
+                    if (err) console.error('[RENDER-START] Error creating users table:', err);
+                    else console.log('[RENDER-START] Users table ready');
+                });
+                
+                // Announcements table
+                db.run(`CREATE TABLE IF NOT EXISTS announcements (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    type TEXT DEFAULT 'notice',
+                    priority TEXT DEFAULT 'normal',
+                    is_active BOOLEAN DEFAULT 1,
+                    file_url TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )`, (err) => {
+                    if (err) console.error('[RENDER-START] Error creating announcements table:', err);
+                    else console.log('[RENDER-START] Announcements table ready');
                 });
                 
                 // Admin users table
@@ -70,12 +104,45 @@ function initializeBasicDatabase(dbPath) {
                 });
                 
                 // Create indexes for better performance
-                db.run(`CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON attendance(student_id, date)`, (err) => {
-                    if (err) console.error('[RENDER-START] Error creating attendance index:', err);
-                    else console.log('[RENDER-START] Attendance index created');
+                db.run(`CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance(student_id)`, (err) => {
+                    if (err) console.error('[RENDER-START] Error creating attendance student index:', err);
+                    else console.log('[RENDER-START] Attendance student index created');
+                });
+                
+                db.run(`CREATE INDEX IF NOT EXISTS idx_attendance_subject_id ON attendance(subject_id)`, (err) => {
+                    if (err) console.error('[RENDER-START] Error creating attendance subject index:', err);
+                    else console.log('[RENDER-START] Attendance subject index created');
+                });
+                
+                db.run(`CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date)`, (err) => {
+                    if (err) console.error('[RENDER-START] Error creating attendance date index:', err);
+                    else console.log('[RENDER-START] Attendance date index created');
                 });
                 
                 db.run(`CREATE INDEX IF NOT EXISTS idx_students_student_id ON students(student_id)`, (err) => {
+                    if (err) console.error('[RENDER-START] Error creating students index:', err);
+                    else console.log('[RENDER-START] Students index created');
+                });
+                
+                db.run(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`, (err) => {
+                    if (err) console.error('[RENDER-START] Error creating users username index:', err);
+                    else console.log('[RENDER-START] Users username index created');
+                });
+                
+                db.run(`CREATE INDEX IF NOT EXISTS idx_users_student_id ON users(student_id)`, (err) => {
+                    if (err) console.error('[RENDER-START] Error creating users student_id index:', err);
+                    else console.log('[RENDER-START] Users student_id index created');
+                });
+                
+                // Insert default admin user
+                const bcrypt = require('bcryptjs');
+                const adminPassword = bcrypt.hashSync('admin123', 10);
+                db.run(`INSERT OR IGNORE INTO users (username, password, name, role) VALUES (?, ?, ?, ?)`, 
+                    ['admin', adminPassword, 'Administrator', 'admin'], (err) => {
+                    if (err) console.error('[RENDER-START] Error creating default admin:', err);
+                    else console.log('[RENDER-START] Default admin user ready');
+                    
+                    // Close database and resolve
                     db.close((closeErr) => {
                         if (closeErr) {
                             console.error('[RENDER-START] Error closing database:', closeErr);
@@ -85,9 +152,6 @@ function initializeBasicDatabase(dbPath) {
                             resolve();
                         }
                     });
-                    
-                    if (err) console.error('[RENDER-START] Error creating students index:', err);
-                    else console.log('[RENDER-START] Students index created');
                 });
             });
         });

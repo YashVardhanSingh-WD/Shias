@@ -759,7 +759,7 @@ app.get('/api/attendance/records', requireAuth, (req, res) => {
     const { subject_id, start_date, end_date } = req.query;
     
     let query = `
-        SELECT a.date, s.student_id, s.name, sub.name as subject_name, a.status
+        SELECT a.id, a.date, s.student_id, s.name, sub.name as subject_name, a.status
         FROM attendance a
         JOIN students s ON a.student_id = s.id
         JOIN subjects sub ON a.subject_id = sub.id
@@ -787,8 +787,10 @@ app.get('/api/attendance/records', requireAuth, (req, res) => {
     
     db.all(query, params, (err, records) => {
         if (err) {
-            return res.status(500).json({ error: 'Database error' });
+            console.error('Database error in /api/attendance/records:', err);
+            return res.status(500).json({ error: 'Database error', details: err.message });
         }
+        console.log(`Returning ${records.length} attendance records`);
         res.json(records);
     });
 });

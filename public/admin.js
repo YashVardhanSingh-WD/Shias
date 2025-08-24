@@ -539,12 +539,28 @@ async function loadAttendanceRecords() {
             url += '?' + params.toString();
         }
         
+        console.log('Fetching attendance records from:', url);
         const response = await fetch(url);
-        const records = await response.json();
+        
+        if (!response.ok) {
+            console.error('Server response not OK:', response.status, response.statusText);
+            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Received data from server:', data);
+        
+        // Ensure we have an array of records
+        const records = Array.isArray(data) ? data : (data.records || data.data || []);
+        console.log('Processing records array:', records);
         
         displayAttendanceRecords(records);
     } catch (error) {
+        console.error('Error loading attendance records:', error);
         alert('Error loading attendance records: ' + error.message);
+        // Display empty state
+        const container = document.getElementById('records-results');
+        container.innerHTML = '<p class="text-center text-muted">Error loading attendance records. Please try again.</p>';
     }
 }
 

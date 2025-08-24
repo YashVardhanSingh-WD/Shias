@@ -15,16 +15,21 @@ async function logout() {
 }
 
 // Initialize admin panel
-document.addEventListener('DOMContentLoaded', function() {
-    checkAuth();
-    loadDashboard();
-    loadSubjects();
-    loadStudents();
-    setCurrentDate();
-    
-    // Add session debugging (remove in production)
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        checkSessionDebug();
+document.addEventListener('DOMContentLoaded', function () {
+    try {
+        checkAuth();
+        loadDashboard();
+        loadSubjects();
+        loadStudents();
+        setCurrentDate();
+
+        // Add session debugging (remove in production)
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            checkSessionDebug();
+        }
+    } catch (error) {
+        console.error('Error during initial page load:', error);
+        alert('An error occurred during page load. Please check the console for details.');
     }
 });
 
@@ -57,9 +62,9 @@ async function checkAuth() {
             return;
         }
         currentUser = user;
-    // If you want to show admin name, add an element with id 'admin-name' in your HTML, or skip this line if not needed
-    // document.getElementById('admin-name').textContent = user.name;
-    console.log('[DEBUG] Auth successful for user:', user.username);
+        // If you want to show admin name, add an element with id 'admin-name' in your HTML, or skip this line if not needed
+        // document.getElementById('admin-name').textContent = user.name;
+        console.log('[DEBUG] Auth successful for user:', user.username);
     } catch (error) {
         console.error('[DEBUG] Auth check error:', error);
         window.location.href = '/login';
@@ -72,10 +77,10 @@ function showSection(sectionName, event) {
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
     });
-    
+
     // Show selected section
     document.getElementById(sectionName + '-section').style.display = 'block';
-    
+
     // Update active nav link
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
@@ -83,7 +88,7 @@ function showSection(sectionName, event) {
     if (event && event.target) {
         event.target.classList.add('active');
     }
-    
+
     // Close sidebar on mobile
     if (window.innerWidth < 768) {
         const sidebar = document.getElementById('sidebar');
@@ -95,9 +100,9 @@ function showSection(sectionName, event) {
             overlay.classList.remove('show');
         }
     }
-    
+
     // Load section-specific data
-    switch(sectionName) {
+    switch (sectionName) {
         case 'dashboard':
             loadDashboard();
             break;
@@ -136,31 +141,31 @@ async function loadDashboard() {
         console.log('[DEBUG] /api/attendance/stats status:', statsRes ? statsRes.status : 'N/A');
         console.log('[DEBUG] /api/attendance status:', attendanceRes ? attendanceRes.status : 'N/A');
         console.log('[DEBUG] /api/announcements status:', announcementsRes ? announcementsRes.status : 'N/A');
-        
+
         const subjectsData = await subjectsRes.json();
         const studentsData = await studentsRes.json();
         const statsData = statsRes && statsRes.ok ? await statsRes.json() : [];
         const attendanceData = attendanceRes && attendanceRes.ok ? await attendanceRes.json() : [];
         const announcementsData = announcementsRes && announcementsRes.ok ? await announcementsRes.json() : [];
-        
+
         console.log('[DEBUG] /api/subjects data:', subjectsData);
         console.log('[DEBUG] /api/students data:', studentsData);
         console.log('[DEBUG] /api/attendance/stats data:', statsData);
         console.log('[DEBUG] /api/attendance data:', attendanceData);
         console.log('[DEBUG] /api/announcements data:', announcementsData);
-        
+
         // Update dashboard stats
         document.getElementById('total-subjects-dash').textContent = subjectsData.length;
         document.getElementById('total-students-dash').textContent = studentsData.length;
-        
+
         // Calculate today's attendance
         const todayAttendance = statsData.reduce((total, stat) => total + stat.total_classes, 0);
         document.getElementById('total-attendance-dash').textContent = todayAttendance;
-        
+
         // Update announcements count
         const activeAnnouncements = announcementsData.filter(a => a.is_active).length;
         document.getElementById('total-announcements-dash').textContent = activeAnnouncements;
-        
+
         // Calculate average attendance percentage
         if (statsData.length > 0) {
             const avgPercentage = statsData.reduce((sum, stat) => sum + stat.percentage, 0) / statsData.length;
@@ -168,7 +173,7 @@ async function loadDashboard() {
                 document.getElementById('avg-attendance').textContent = avgPercentage.toFixed(1) + '%';
             }
         }
-        
+
         // Load recent attendance
         loadRecentAttendance();
     } catch (error) {
@@ -225,10 +230,10 @@ async function loadSubjects() {
     try {
         const response = await fetch('/api/subjects');
         subjects = await response.json();
-        
+
         const tbody = document.getElementById('subjects-table');
         tbody.innerHTML = '';
-        
+
         subjects.forEach(subject => {
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -244,7 +249,7 @@ async function loadSubjects() {
             `;
             tbody.appendChild(row);
         });
-        
+
         // Update subject dropdowns
         updateSubjectDropdowns();
     } catch (error) {
@@ -255,11 +260,11 @@ async function loadSubjects() {
 function updateSubjectDropdowns() {
     const attendanceSelect = document.getElementById('attendance-subject');
     const recordsSelect = document.getElementById('records-subject');
-    
+
     // Clear existing options
     attendanceSelect.innerHTML = '<option value="">Choose subject...</option>';
     recordsSelect.innerHTML = '<option value="">All Subjects</option>';
-    
+
     // Add subject options
     subjects.forEach(subject => {
         attendanceSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
@@ -276,19 +281,19 @@ function showAddSubjectModal() {
 async function addSubject() {
     const name = document.getElementById('subject-name').value.trim();
     const description = document.getElementById('subject-description').value.trim();
-    
+
     if (!name) {
         alert('Please enter a subject name');
         return;
     }
-    
+
     try {
         const response = await fetch('/api/subjects', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, description })
         });
-        
+
         if (response.ok) {
             bootstrap.Modal.getInstance(document.getElementById('addSubjectModal')).hide();
             loadSubjects();
@@ -306,10 +311,10 @@ async function deleteSubject(id) {
     if (!confirm('Are you sure you want to delete this subject?')) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/subjects/${id}`, { method: 'DELETE' });
-        
+
         if (response.ok) {
             loadSubjects();
             loadDashboard();
@@ -327,10 +332,10 @@ async function loadStudents() {
     try {
         const response = await fetch('/api/students');
         students = await response.json();
-        
+
         const tbody = document.getElementById('students-table');
         tbody.innerHTML = '';
-        
+
         students.forEach(student => {
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -378,6 +383,38 @@ function editStudent(id) {
     }
 }
 
+async function addStudent() {
+    const student_id = document.getElementById('student-id').value.trim();
+    const name = document.getElementById('student-name').value.trim();
+    const email = document.getElementById('student-email').value.trim();
+    const phone = document.getElementById('student-phone').value.trim();
+
+    if (!name) {
+        alert('Please enter student name');
+        return;
+    }
+
+    try {
+        const payload = student_id ? { student_id, name, email, phone } : { name, email, phone };
+        const response = await fetch('/api/students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('addStudentModal')).hide();
+            loadStudents();
+            loadDashboard();
+        } else {
+            alert('Error adding student');
+        }
+    } catch (error) {
+        console.error('Error adding student:', error);
+        alert('Error adding student');
+    }
+}
+
 async function saveStudent(id) {
     const name = document.getElementById('student-name').value.trim();
     const email = document.getElementById('student-email').value.trim();
@@ -408,46 +445,14 @@ async function saveStudent(id) {
     }
 }
 
-async function addStudent() {
-    const student_id = document.getElementById('student-id').value.trim();
-    const name = document.getElementById('student-name').value.trim();
-    const email = document.getElementById('student-email').value.trim();
-    const phone = document.getElementById('student-phone').value.trim();
-    
-    if (!name) {
-        alert('Please enter student name');
-        return;
-    }
-    
-    try {
-        const payload = student_id ? { student_id, name, email, phone } : { name, email, phone };
-        const response = await fetch('/api/students', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById('addStudentModal')).hide();
-            loadStudents();
-            loadDashboard();
-        } else {
-            alert('Error adding student');
-        }
-    } catch (error) {
-        console.error('Error adding student:', error);
-        alert('Error adding student');
-    }
-}
-
 async function deleteStudent(id) {
     if (!confirm('Are you sure you want to delete this student?')) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/students/${id}`, { method: 'DELETE' });
-        
+
         if (response.ok) {
             loadStudents();
             loadDashboard();
@@ -474,26 +479,26 @@ function setCurrentDate() {
 async function loadAttendanceForm() {
     const subjectId = document.getElementById('attendance-subject').value;
     const date = document.getElementById('attendance-date').value;
-    
+
     if (!subjectId || !date) {
         alert('Please select both subject and date');
         return;
     }
-    
+
     try {
         // Load existing attendance for this subject and date
         const response = await fetch(`/api/attendance?subject_id=${subjectId}&date=${date}`);
         const existingAttendance = await response.json();
-        
+
         // Create attendance form
-    const container = document.getElementById('attendance-form');
+        const container = document.getElementById('attendance-form');
         let html = '<div class="table-responsive"><table class="table table-hover">';
         html += '<thead><tr><th>Student ID</th><th>Name</th><th>Status</th></tr></thead><tbody>';
-        
+
         students.forEach(student => {
             const existingRecord = existingAttendance.find(record => record.student_id === student.id);
             const status = existingRecord ? existingRecord.status : 'present';
-            
+
             html += `
                 <tr>
                     <td>${student.student_id}</td>
@@ -507,14 +512,14 @@ async function loadAttendanceForm() {
                     </td>
                 </tr>
             `;
-            
+
             // Store attendance data
             attendanceData[student.id] = status;
         });
-        
+
         html += '</tbody></table></div>';
         container.innerHTML = html;
-        
+
     } catch (error) {
         console.error('Error loading attendance form:', error);
         alert('Error loading attendance form');
@@ -525,7 +530,7 @@ function toggleAttendance(studentId) {
     const button = document.querySelector(`[data-student-id="${studentId}"]`);
     const currentStatus = attendanceData[studentId];
     const newStatus = currentStatus === 'present' ? 'absent' : 'present';
-    
+
     attendanceData[studentId] = newStatus;
     button.textContent = newStatus.toUpperCase();
     button.className = `attendance-toggle ${newStatus}`;
@@ -534,29 +539,29 @@ function toggleAttendance(studentId) {
 async function saveAttendance() {
     const subjectId = document.getElementById('attendance-subject').value;
     const date = document.getElementById('attendance-date').value;
-    
+
     if (!subjectId || !date) {
         alert('Please select both subject and date');
         return;
     }
-    
+
     if (Object.keys(attendanceData).length === 0) {
         alert('Please load the attendance form first');
         return;
     }
-    
+
     try {
         const attendance_data = Object.entries(attendanceData).map(([student_id, status]) => ({
             student_id: parseInt(student_id),
             status
         }));
-        
+
         const response = await fetch('/api/attendance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ subject_id: parseInt(subjectId), date, attendance_data })
         });
-        
+
         if (response.ok) {
             alert('Attendance saved successfully!');
             loadDashboard();
@@ -575,34 +580,34 @@ async function loadAttendanceRecords() {
     const subjectId = document.getElementById('records-subject').value;
     const startDate = document.getElementById('records-start-date').value;
     const endDate = document.getElementById('records-end-date').value;
-    
+
     try {
         let url = '/api/attendance/records';
         const params = new URLSearchParams();
-        
+
         if (subjectId) params.append('subject_id', subjectId);
         if (startDate) params.append('start_date', startDate);
         if (endDate) params.append('end_date', endDate);
-        
+
         if (params.toString()) {
             url += '?' + params.toString();
         }
-        
+
         console.log('Fetching attendance records from:', url);
         const response = await fetch(url);
-        
+
         if (!response.ok) {
             console.error('Server response not OK:', response.status, response.statusText);
             throw new Error(`Server error: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log('Received data from server:', data);
-        
+
         // Ensure we have an array of records
         const records = Array.isArray(data) ? data : (data.records || data.data || []);
         console.log('Processing records array:', records);
-        
+
         displayAttendanceRecords(records);
     } catch (error) {
         console.error('Error loading attendance records:', error);
@@ -615,14 +620,14 @@ async function loadAttendanceRecords() {
 
 function displayAttendanceRecords(records) {
     const container = document.getElementById('records-results');
-    
+
     if (records.length === 0) {
         container.innerHTML = '<p class="text-center text-muted">No attendance records found for the selected criteria</p>';
         return;
     }
-    
+
     console.log('Records to display:', records);
-    
+
     // Group records by date
     const groupedRecords = {};
     records.forEach(record => {
@@ -631,15 +636,15 @@ function displayAttendanceRecords(records) {
         }
         groupedRecords[record.date].push(record);
     });
-    
+
     let html = '<div class="accordion" id="recordsAccordion">';
-    
+
     Object.keys(groupedRecords).sort().reverse().forEach((date, index) => {
         const dayRecords = groupedRecords[date];
         const presentCount = dayRecords.filter(r => r.status === 'present').length;
         const absentCount = dayRecords.filter(r => r.status === 'absent').length;
         const totalCount = dayRecords.length;
-        
+
         html += `
             <div class="accordion-item">
                 <h2 class="accordion-header" id="heading${index}">
@@ -667,14 +672,14 @@ function displayAttendanceRecords(records) {
                                 </thead>
                                 <tbody>
         `;
-        
+
         dayRecords.forEach(record => {
             const statusClass = record.status === 'present' ? 'text-success' : 'text-danger';
             const statusIcon = record.status === 'present' ? '✓' : '✗';
-            
+
             // Log the record to debug
             console.log('Record in displayAttendanceRecords:', record);
-            
+
             html += `
                 <tr>
                     <td>${record.student_id}</td>
@@ -689,7 +694,7 @@ function displayAttendanceRecords(records) {
                 </tr>
             `;
         });
-        
+
         html += `
                                 </tbody>
                             </table>
@@ -699,7 +704,7 @@ function displayAttendanceRecords(records) {
             </div>
         `;
     });
-    
+
     html += '</div>';
     container.innerHTML = html;
 }
@@ -708,19 +713,19 @@ async function exportRecordsCSV() {
     const subjectId = document.getElementById('records-subject').value;
     const startDate = document.getElementById('records-start-date').value;
     const endDate = document.getElementById('records-end-date').value;
-    
+
     try {
         let url = '/api/attendance/records/export';
         const params = new URLSearchParams();
-        
+
         if (subjectId) params.append('subject_id', subjectId);
         if (startDate) params.append('start_date', startDate);
         if (endDate) params.append('end_date', endDate);
-        
+
         if (params.toString()) {
             url += '?' + params.toString();
         }
-        
+
         window.open(url, '_blank');
     } catch (error) {
         alert('Error exporting records: ' + error.message);
@@ -730,25 +735,25 @@ async function exportRecordsCSV() {
 // Delete attendance record by ID
 async function deleteAttendanceRecord(id) {
     console.log('deleteAttendanceRecord called with id:', id);
-    
+
     if (!id || id === 0) {
         console.error('Invalid attendance record ID:', id);
         alert('Error: Invalid attendance record ID');
         return;
     }
-    
+
     if (!confirm('Are you sure you want to delete this attendance record? This action cannot be undone.')) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/attendance/${id}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' }
         });
-        
+
         console.log('deleteAttendanceRecord response status:', response.status);
-        
+
         if (response.ok) {
             console.log('Attendance record deleted successfully');
             // Reload the attendance records display
@@ -768,18 +773,18 @@ async function deleteAttendanceRecord(id) {
 // Delete attendance records by date
 async function deleteAttendanceByDate(date) {
     console.log('deleteAttendanceByDate called with date:', date);
-    
+
     if (!confirm(`Are you sure you want to delete ALL attendance records for ${date}? This action cannot be undone.`)) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/attendance/date/${date}`, {
             method: 'DELETE'
         });
-        
+
         console.log('deleteAttendanceByDate response status:', response.status);
-        
+
         if (response.ok) {
             console.log('Attendance records deleted successfully');
             // Reload the attendance records display
@@ -810,34 +815,34 @@ function formatDate(dateString) {
 // Delete attendance records by date
 async function deleteRecordsByDate() {
     const date = document.getElementById('records-start-date').value;
-    
+
     if (!date) {
         alert('Please select a date first');
         return;
     }
-    
+
     // Check if end date is also selected, if so, we'll delete records for all dates in the range
     const endDate = document.getElementById('records-end-date').value;
-    
+
     if (endDate && endDate < date) {
         alert('End date must be after start date');
         return;
     }
-    
+
     try {
         if (endDate && endDate !== date) {
             // Delete records for a date range
             if (!confirm(`Are you sure you want to delete ALL attendance records between ${date} and ${endDate}? This action cannot be undone.`)) {
                 return;
             }
-            
+
             // Delete all records for this date range using the proper DELETE endpoint
             const deleteResponse = await fetch('/api/attendance/range', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ start_date: date, end_date: endDate })
             });
-            
+
             if (deleteResponse.ok) {
                 const data = await deleteResponse.json();
                 loadAttendanceRecords();
@@ -866,29 +871,29 @@ function showChangePasswordModal() {
 async function changePassword() {
     const newPassword = document.getElementById('new-password').value;
     const confirmPassword = document.getElementById('confirm-password').value;
-    
+
     if (!newPassword) {
         alert('Please enter a new password');
         return;
     }
-    
+
     if (newPassword !== confirmPassword) {
         alert('Passwords do not match');
         return;
     }
-    
+
     if (newPassword.length < 6) {
         alert('Password must be at least 6 characters long');
         return;
     }
-    
+
     try {
         const response = await fetch('/api/admin/credentials', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: newPassword })
         });
-        
+
         if (response.ok) {
             alert('Password changed successfully! You will be logged out.');
             bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide();
@@ -924,12 +929,12 @@ async function loadAnnouncements() {
 function displayAnnouncements(announcements) {
     console.log('displayAnnouncements called with', announcements.length, 'announcements');
     const container = document.getElementById('announcements-table');
-    
+
     if (announcements.length === 0) {
         container.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No announcements found</td></tr>';
         return;
     }
-    
+
     const html = announcements.map(announcement => {
         const priorityClass = getPriorityClass(announcement.priority);
         const typeClass = getTypeClass(announcement.type);
@@ -962,7 +967,7 @@ function displayAnnouncements(announcements) {
             </tr>
         `;
     }).join('');
-    
+
     container.innerHTML = html;
 }
 
@@ -1089,13 +1094,13 @@ async function deleteAnnouncement(id) {
     if (!confirm('Are you sure you want to delete this announcement?')) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/announcements/${id}`, {
             method: 'DELETE'
         });
         console.log('deleteAnnouncement response status:', response.status);
-        
+
         if (response.ok) {
             console.log('Announcement deleted successfully');
             loadAnnouncements();

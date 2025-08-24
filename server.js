@@ -7,24 +7,62 @@ const path = require('path');
 const moment = require('moment');
 const multer = require('multer');
 const fs = require('fs');
+const crypto = require('crypto');
 
-const FileStore = require('session-file-store')(session);
+// Logging utility
+const logger = {
+    info: (message, ...args) => {
+        if (process.env.NODE_ENV !== 'production') {
+            console.log(`[INFO] ${message}`, ...args);
+        }
+    },
+    error: (message, ...args) => {
+        console.error(`[ERROR] ${message}`, ...args);
+    },
+    warn: (message, ...args) => {
+        console.warn(`[WARN] ${message}`, ...args);
+    }
+};
+
+// Input validation utilities
+const validators = {
+    isValidDate: (dateString) => {
+        const regex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!regex.test(dateString)) return false;
+        const date = new Date(dateString);
+        return date instanceof Date && !isNaN(date);
+    },
+    isValidEmail: (email) => {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    },
+    sanitizeString: (str) => {
+        if (typeof str !== 'string') return '';
+        return str.trim().replace(/[<>]/g, '');
+    },
+    isValidStudentId: (id) => {
+        return /^[a-zA-Z0-9]+$/.test(id);
+    }
+};
+
+// Session store setup
 let sessionStore;
-
 if (process.env.REDIS_URL && process.env.REDIS_URL.startsWith('redis://')) {
-    // Use Redis if REDIS_URL is valid
-    const { default: RedisStore } = require('connect-redis');
-    const { createClient } = require('redis');
-    const redisClient = createClient({
-        url: process.env.REDIS_URL
-    });
-    redisClient.connect().catch(console.error);
-    sessionStore = new RedisStore({ client: redisClient });
-    console.log('Using Redis session store');
+    try {
+        const { default: RedisStore } = require('connect-redis');
+        const { createClient } = require('redis');
+        const redisClient = createClient({
+            url: process.env.REDIS_URL
+        });
+        redisClient.connect().catch(logger.error);
+        sessionStore = new RedisStore({ client: redisClient });
+        logger.info('Using Redis session store');
+    } catch (error) {
+        logger.error('Failed to setup Redis session store:', error);
+        logger.info('Falling back to memory session store');
+    }
 } else {
-    // Fallback to memory store to avoid file system issues on Windows
-    console.log('Using memory-based session store (not suitable for production)');
-    // Don't set sessionStore, let express-session use its default memory store
+    logger.info('Using memory-based session store (not suitable for production)');
 }
 
 const app = express();
@@ -39,28 +77,37 @@ if (process.env.NODE_ENV === 'production') {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
+// Generate secure session secret if not provided
+const generateSessionSecret = () => {
+    return crypto.randomBytes(64).toString('hex');
+};
+
+const sessionSecret = process.env.SESSION_SECRET || generateSessionSecret();
+if (!process.env.SESSION_SECRET) {
+    logger.warn('SESSION_SECRET not set in environment variables. Using generated secret (not suitable for production)');
+}
+
 app.use(session({
-    store: sessionStore, // Only used when sessionStore is defined (Redis), otherwise uses default memory store
-    secret: process.env.SESSION_SECRET || 'attendance-system-secret-key-change-in-production',
+    store: sessionStore,
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // Always false for now to ensure cookies work in all environments
+        secure: process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         sameSite: 'lax'
     },
     name: 'attendance-session',
-    // Add error handling for session operations
-    proxy: true,
+    proxy: process.env.NODE_ENV === 'production',
     unset: 'destroy',
     rolling: false
 }));
 
-// Debug: Log session creation and user info
+// Debug: Log session creation and user info (only in development)
 app.use((req, res, next) => {
-    if (req.session) {
-        console.log('Session ID:', req.sessionID, 'User:', req.session.user);
+    if (req.session && process.env.NODE_ENV !== 'production') {
+        logger.info('Session ID:', req.sessionID, 'User:', req.session.user);
     }
     next();
 });
@@ -68,7 +115,7 @@ app.use((req, res, next) => {
 // Session error handling
 app.use((err, req, res, next) => {
     if (err) {
-        console.error('Session error:', err);
+        logger.error('Session error:', err);
         // Don't break the request flow, just log the error
         next();
     } else {
@@ -77,22 +124,10 @@ app.use((err, req, res, next) => {
 });
 
 // Set up uploads directory
-// Ensure sessions directory exists for session-file-store
-const SESSIONS_DIR = path.join(__dirname, 'sessions');
-if (!fs.existsSync(SESSIONS_DIR)) {
-    console.log('Creating sessions directory at:', SESSIONS_DIR);
-    try {
-        fs.mkdirSync(SESSIONS_DIR, { recursive: true });
-        console.log('Sessions directory created successfully');
-    } catch (err) {
-        console.error('Failed to create sessions directory:', err);
-    }
-} else {
-    console.log('Sessions directory already exists at:', SESSIONS_DIR);
-}
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
-    fs.mkdirSync(UPLOADS_DIR);
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    logger.info('Created uploads directory');
 }
 app.use('/uploads', express.static(UPLOADS_DIR));
 
@@ -110,7 +145,7 @@ const upload = multer({ storage: storage });
 // Database setup
 const db = new sqlite3.Database('attendance.db');
 
-// Initialize database tables
+// Initialize database tables with indexes
 db.serialize(() => {
     // Users table (admin and students)
     db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -167,6 +202,14 @@ db.serialize(() => {
 
     // Add file_url column if not exists
     db.run(`ALTER TABLE announcements ADD COLUMN file_url TEXT`, err => {});
+
+    // Create indexes for better performance
+    db.run(`CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance(student_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_attendance_subject_id ON attendance(subject_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_students_student_id ON students(student_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_users_student_id ON users(student_id)`);
 
     // Insert default admin user
     const adminPassword = bcrypt.hashSync('admin123', 10);
@@ -618,7 +661,7 @@ app.delete('/api/attendance/date/:date', requireAdmin, (req, res) => {
     const { date } = req.params;
     
     // Validate date format (YYYY-MM-DD)
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) {
+    if (!validators.isValidDate(date)) {
         return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
     }
     
@@ -651,7 +694,7 @@ app.delete('/api/attendance/range', requireAdmin, (req, res) => {
     const { start_date, end_date } = req.body;
     
     // Validate date format (YYYY-MM-DD)
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(start_date) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(end_date)) {
+    if (!validators.isValidDate(start_date) || !validators.isValidDate(end_date)) {
         return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
     }
     

@@ -1,0 +1,51 @@
+{
+  "name": "Attendance Management System",
+  "description": "A comprehensive attendance management system with admin and student portals",
+  "repository": "https://github.com/yourusername/attendance-system",
+  "logo": "https://cdn.jsdelivr.net/npm/heroicons@1.0.6/outline/academic-cap.svg",
+  "keywords": ["node", "express", "attendance", "management", "education"],
+  "image": "heroku/nodejs",
+  "stack": "heroku-22",
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-redis:mini",
+      "as": "REDIS"
+    }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production"
+    },
+    "SESSION_SECRET": {
+      "description": "Secret key for session encryption",
+      "generator": "secret"
+    },
+    "DEFAULT_ADMIN_USERNAME": {
+      "description": "Default admin username",
+      "value": "admin"
+    },
+    "DEFAULT_ADMIN_PASSWORD": {
+      "description": "Default admin password (change after deployment)",
+      "value": "admin123"
+    },
+    "HTTPS": {
+      "description": "Enable HTTPS in production",
+      "value": "true"
+    }
+  },
+  "scripts": {
+    "postdeploy": "echo 'Deployment completed successfully!'"
+  }
+}

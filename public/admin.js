@@ -340,6 +340,9 @@ async function loadStudents() {
                 <td>${student.email || '-'}</td>
                 <td>${student.phone || '-'}</td>
                 <td>
+                    <button class="btn btn-primary btn-sm" onclick="editStudent(${student.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
                     <button class="btn btn-danger btn-sm" onclick="deleteStudent(${student.id})">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -353,10 +356,56 @@ async function loadStudents() {
 }
 
 function showAddStudentModal() {
+    document.getElementById('student-id').value = '';
     document.getElementById('student-name').value = '';
     document.getElementById('student-email').value = '';
     document.getElementById('student-phone').value = '';
+    document.getElementById('addStudentModalLabel').textContent = 'Add New Student';
+    document.getElementById('save-student-btn').onclick = addStudent;
     new bootstrap.Modal(document.getElementById('addStudentModal')).show();
+}
+
+function editStudent(id) {
+    const student = students.find(s => s.id === id);
+    if (student) {
+        document.getElementById('student-id').value = student.student_id;
+        document.getElementById('student-name').value = student.name;
+        document.getElementById('student-email').value = student.email;
+        document.getElementById('student-phone').value = student.phone;
+        document.getElementById('addStudentModalLabel').textContent = 'Edit Student';
+        document.getElementById('save-student-btn').onclick = () => saveStudent(id);
+        new bootstrap.Modal(document.getElementById('addStudentModal')).show();
+    }
+}
+
+async function saveStudent(id) {
+    const name = document.getElementById('student-name').value.trim();
+    const email = document.getElementById('student-email').value.trim();
+    const phone = document.getElementById('student-phone').value.trim();
+
+    if (!name) {
+        alert('Please enter student name');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/students/${id}`,
+            {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, phone })
+            });
+
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('addStudentModal')).hide();
+            loadStudents();
+        } else {
+            alert('Error saving student');
+        }
+    } catch (error) {
+        console.error('Error saving student:', error);
+        alert('Error saving student');
+    }
 }
 
 async function addStudent() {

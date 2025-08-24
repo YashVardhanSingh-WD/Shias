@@ -481,6 +481,31 @@ app.post('/api/students', requireAdmin, (req, res) => {
     }
 });
 
+app.put('/api/students/:id', requireAdmin, (req, res) => {
+    const { id } = req.params;
+    const { name, email, phone } = req.body;
+
+    // Validate input
+    if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
+    }
+
+    // Update student in the database
+    db.run(
+        'UPDATE students SET name = ?, email = ?, phone = ? WHERE id = ?',
+        [name, email, phone, id],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+            if (this.changes === 0) {
+                return res.status(404).json({ error: 'Student not found' });
+            }
+            res.json({ success: true });
+        }
+    );
+});
+
 app.delete('/api/students/:id', requireAdmin, (req, res) => {
     const { id } = req.params;
     

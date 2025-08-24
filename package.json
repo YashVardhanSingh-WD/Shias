@@ -20,6 +20,7 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
+    "archiver": "^6.0.1",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "connect-redis": "^9.0.0",
@@ -28,6 +29,7 @@
     "firebase": "^12.1.0",
     "moment": "^2.29.4",
     "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
     "redis": "^5.8.2",
     "session-file-store": "^1.5.0",
     "sqlite3": "^5.1.6"

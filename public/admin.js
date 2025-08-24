@@ -630,6 +630,8 @@ async function exportRecordsCSV() {
     } catch (error) {
         alert('Error exporting records: ' + error.message);
     }
+}
+
 // Delete attendance record by ID
 async function deleteAttendanceRecord(id) {
     console.log('deleteAttendanceRecord called with id:', id);
@@ -691,7 +693,7 @@ async function deleteAttendanceByDate(date) {
         alert('Error deleting attendance records: ' + error.message);
     }
 }
-}
+
 
 function formatDate(dateString) {
     const date = new Date(dateString);

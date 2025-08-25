@@ -1,5 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
-const mysql = require('mysql2/promise');
+const PostgreSQLDatabase = require('./database-postgres');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
@@ -13,15 +13,17 @@ class DatabaseAdapter {
 
     async connect() {
         try {
-            if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql://')) {
-                // MySQL/PlanetScale connection
-                await this.connectMySQL();
+            if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres://')) {
+                // PostgreSQL/Heroku connection
+                await this.connectPostgreSQL();
             } else {
                 // SQLite connection (fallback)
                 await this.connectSQLite();
             }
             
-            await this.initializeTables();
+            if (this.type !== 'postgresql') {
+                await this.initializeTables();
+            }
             console.log(`[INFO] Database connected successfully (${this.type})`);
         } catch (error) {
             console.error('[ERROR] Database connection failed:', error);
@@ -29,9 +31,10 @@ class DatabaseAdapter {
         }
     }
 
-    async connectMySQL() {
-        this.db = await mysql.createConnection(process.env.DATABASE_URL);
-        this.type = 'mysql';
+    async connectPostgreSQL() {
+        this.db = new PostgreSQLDatabase();
+        await this.db.connect();
+        this.type = 'postgresql';
         this.isConnected = true;
     }
 
@@ -57,94 +60,8 @@ class DatabaseAdapter {
     }
 
     async initializeTables() {
-        if (this.type === 'mysql') {
-            await this.initializeMySQLTables();
-        } else {
+        if (this.type === 'sqlite') {
             await this.initializeSQLiteTables();
-        }
-    }
-
-    async initializeMySQLTables() {
-        try {
-            // Users table
-            await this.db.execute(`
-                CREATE TABLE IF NOT EXISTS users (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    username VARCHAR(255) UNIQUE NOT NULL,
-                    password TEXT NOT NULL,
-                    name VARCHAR(255) NOT NULL,
-                    student_id VARCHAR(255) UNIQUE,
-                    role VARCHAR(50) DEFAULT 'student',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            `);
-
-            // Subjects table
-            await this.db.execute(`
-                CREATE TABLE IF NOT EXISTS subjects (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    name VARCHAR(255) NOT NULL,
-                    description TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            `);
-
-            // Students table
-            await this.db.execute(`
-                CREATE TABLE IF NOT EXISTS students (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    student_id VARCHAR(255) UNIQUE NOT NULL,
-                    name VARCHAR(255) NOT NULL,
-                    email VARCHAR(255),
-                    phone VARCHAR(50),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            `);
-
-            // Attendance table
-            await this.db.execute(`
-                CREATE TABLE IF NOT EXISTS attendance (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    student_id INT,
-                    subject_id INT,
-                    date DATE NOT NULL,
-                    status VARCHAR(50) DEFAULT 'present',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
-                    FOREIGN KEY (subject_id) REFERENCES subjects (id) ON DELETE CASCADE
-                )
-            `);
-
-            // Announcements table
-            await this.db.execute(`
-                CREATE TABLE IF NOT EXISTS announcements (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    title VARCHAR(255) NOT NULL,
-                    content TEXT NOT NULL,
-                    type VARCHAR(50) DEFAULT 'notice',
-                    priority VARCHAR(50) DEFAULT 'normal',
-                    is_active BOOLEAN DEFAULT 1,
-                    file_url TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-                )
-            `);
-
-            // Create indexes
-            await this.db.execute(`CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance(student_id)`);
-            await this.db.execute(`CREATE INDEX IF NOT EXISTS idx_attendance_subject_id ON attendance(subject_id)`);
-            await this.db.execute(`CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date)`);
-
-            // Insert default admin user
-            const adminPassword = bcrypt.hashSync('admin123', 10);
-            await this.db.execute(`
-                INSERT IGNORE INTO users (username, password, name, role) 
-                VALUES (?, ?, ?, ?)
-            `, ['admin', adminPassword, 'Administrator', 'admin']);
-
-        } catch (error) {
-            console.error('[ERROR] Failed to initialize MySQL tables:', error);
-            throw error;
         }
     }
 
@@ -225,9 +142,8 @@ class DatabaseAdapter {
     }
 
     async query(sql, params = []) {
-        if (this.type === 'mysql') {
-            const [rows] = await this.db.execute(sql, params);
-            return rows;
+        if (this.type === 'postgresql') {
+            return await this.db.query(sql, params);
         } else {
             return new Promise((resolve, reject) => {
                 this.db.all(sql, params, (err, rows) => {
@@ -239,9 +155,8 @@ class DatabaseAdapter {
     }
 
     async get(sql, params = []) {
-        if (this.type === 'mysql') {
-            const [rows] = await this.db.execute(sql, params);
-            return rows[0] || null;
+        if (this.type === 'postgresql') {
+            return await this.db.get(sql, params);
         } else {
             return new Promise((resolve, reject) => {
                 this.db.get(sql, params, (err, row) => {
@@ -253,12 +168,8 @@ class DatabaseAdapter {
     }
 
     async run(sql, params = []) {
-        if (this.type === 'mysql') {
-            const [result] = await this.db.execute(sql, params);
-            return {
-                lastInsertId: result.insertId,
-                changes: result.affectedRows
-            };
+        if (this.type === 'postgresql') {
+            return await this.db.run(sql, params);
         } else {
             return new Promise((resolve, reject) => {
                 this.db.run(sql, params, function(err) {
@@ -274,8 +185,8 @@ class DatabaseAdapter {
 
     async close() {
         if (this.db) {
-            if (this.type === 'mysql') {
-                await this.db.end();
+            if (this.type === 'postgresql') {
+                await this.db.close();
             } else {
                 this.db.close();
             }

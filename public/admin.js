@@ -582,7 +582,7 @@ async function loadAttendanceRecords() {
     const endDate = document.getElementById('records-end-date').value;
 
     try {
-        let url = '/api/attendance/records';
+        let url = '/api/attendance';
         const params = new URLSearchParams();
 
         if (subjectId) params.append('subject_id', subjectId);
@@ -709,7 +709,7 @@ function displayAttendanceRecords(records) {
     container.innerHTML = html;
 }
 
-async function exportRecordsCSV() {
+async function exportRecordsPDF() {
     const subjectId = document.getElementById('records-subject').value;
     const startDate = document.getElementById('records-start-date').value;
     const endDate = document.getElementById('records-end-date').value;

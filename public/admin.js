@@ -861,50 +861,80 @@ async function deleteRecordsByDate() {
     }
 }
 
-// Password change functions
+// Admin credentials change functions
 function showChangePasswordModal() {
+    document.getElementById('new-username').value = '';
     document.getElementById('new-password').value = '';
     document.getElementById('confirm-password').value = '';
     new bootstrap.Modal(document.getElementById('changePasswordModal')).show();
 }
 
 async function changePassword() {
+    const newUsername = document.getElementById('new-username').value.trim();
     const newPassword = document.getElementById('new-password').value;
     const confirmPassword = document.getElementById('confirm-password').value;
 
-    if (!newPassword) {
-        alert('Please enter a new password');
+    // Validate that at least one field is provided
+    if (!newUsername && !newPassword) {
+        alert('Please enter either a new username or password');
         return;
     }
 
-    if (newPassword !== confirmPassword) {
-        alert('Passwords do not match');
-        return;
+    // Validate password if provided
+    if (newPassword) {
+        if (newPassword !== confirmPassword) {
+            alert('Passwords do not match');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            alert('Password must be at least 6 characters long');
+            return;
+        }
     }
 
-    if (newPassword.length < 6) {
-        alert('Password must be at least 6 characters long');
-        return;
+    // Validate username if provided
+    if (newUsername) {
+        if (newUsername.length < 3) {
+            alert('Username must be at least 3 characters long');
+            return;
+        }
+        
+        if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+            alert('Username can only contain letters, numbers, and underscores');
+            return;
+        }
     }
 
     try {
         const response = await fetch('/api/admin/credentials', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: newPassword })
+            body: JSON.stringify({ 
+                username: newUsername || undefined,
+                password: newPassword || undefined
+            })
         });
 
         if (response.ok) {
-            alert('Password changed successfully! You will be logged out.');
+            const result = await response.json();
+            alert(result.message || 'Credentials updated successfully!');
             bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide();
-            logout();
+            
+            // Only logout if password was changed (for security)
+            if (newPassword) {
+                setTimeout(() => {
+                    alert('You will be logged out for security reasons. Please log in again with your new credentials.');
+                    logout();
+                }, 1000);
+            }
         } else {
             const data = await response.json();
-            alert(data.error || 'Error changing password');
+            alert(data.error || 'Error updating credentials');
         }
     } catch (error) {
-        console.error('Error changing password:', error);
-        alert('Error changing password');
+        console.error('Error updating credentials:', error);
+        alert('Error updating credentials');
     }
 }
 

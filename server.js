@@ -519,6 +519,74 @@ app.get('/api/public/announcements', async (req, res) => {
     }
 });
 
+// Admin credentials management
+app.put('/api/admin/credentials', requireAdmin, async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username && !password) {
+            return res.status(400).json({ error: 'Either username or password must be provided' });
+        }
+
+        // Validate username if provided
+        if (username) {
+            if (username.length < 3) {
+                return res.status(400).json({ error: 'Username must be at least 3 characters long' });
+            }
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+            }
+            
+            // Check if username already exists (excluding current user)
+            const existingUser = await db.get('SELECT id FROM users WHERE username = $1 AND id != $2', 
+                [username, req.session.user.id]);
+            if (existingUser) {
+                return res.status(400).json({ error: 'Username already exists' });
+            }
+        }
+
+        // Validate password if provided
+        if (password) {
+            if (password.length < 6) {
+                return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+            }
+        }
+
+        let updateQuery = '';
+        let updateParams = [];
+        let paramCount = 0;
+
+        if (username && password) {
+            const hashedPassword = bcrypt.hashSync(password, 10);
+            updateQuery = 'UPDATE users SET username = $1, password = $2 WHERE id = $3';
+            updateParams = [username, hashedPassword, req.session.user.id];
+        } else if (username) {
+            updateQuery = 'UPDATE users SET username = $1 WHERE id = $2';
+            updateParams = [username, req.session.user.id];
+        } else if (password) {
+            const hashedPassword = bcrypt.hashSync(password, 10);
+            updateQuery = 'UPDATE users SET password = $1 WHERE id = $2';
+            updateParams = [hashedPassword, req.session.user.id];
+        }
+
+        const result = await db.run(updateQuery, updateParams);
+        
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Update session if username changed
+        if (username) {
+            req.session.user.username = username;
+        }
+
+        res.json({ success: true, message: 'Credentials updated successfully' });
+    } catch (error) {
+        console.error('Error updating credentials:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
 // Start server
 app.listen(PORT, () => {
     console.log(`🚀 Attendance Management System running on http://localhost:${PORT}`);

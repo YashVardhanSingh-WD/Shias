@@ -95,6 +95,45 @@ app.use(session({
     name: 'attendance-session'
 }));
 
+// Delete a single attendance record by id
+app.delete('/api/attendance/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.run('DELETE FROM attendance WHERE id = $1', [id]);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Attendance record not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Attendance deletion error:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+  // Delete an announcement
+app.delete('/api/announcements/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    // First, get the file url (if exists) to remove the uploaded file
+    const announcement = await db.get('SELECT file_url FROM announcements WHERE id = $1', [id]);
+    if (!announcement) {
+      return res.status(404).json({ error: 'Announcement not found' });
+    }
+    if (announcement.file_url) {
+      // Remove the file from uploads
+      const filePath = path.join(__dirname, announcement.file_url);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+    const result = await db.run('DELETE FROM announcements WHERE id = $1', [id]);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Announcement not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Announcement deletion error:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
 // Set up uploads directory
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -311,6 +350,9 @@ app.delete('/api/students/:id', requireAdmin, async (req, res) => {
     }
 });
 
+const PDFDocument = require('pdfkit');
+const { Writable } = require('stream');
+
 // Attendance API
 app.get('/api/attendance', requireAuth, async (req, res) => {
     try {
@@ -363,6 +405,61 @@ app.post('/api/attendance', requireAdmin, async (req, res) => {
         res.status(500).json({ error: 'Database error' });
     }
 });
+
+// Attendance records export endpoint
+// PDF Export of attendance records
+app.get('/api/attendance/records/export', requireAuth, async (req, res) => {
+  try {
+    const { subject_id, start_date, end_date } = req.query;
+    let query = `
+      SELECT a.date, s.student_id AS student_code, s.name AS student_name, sub.name AS subject_name, a.status
+      FROM attendance a
+      JOIN students s ON a.student_id = s.id
+      JOIN subjects sub ON a.subject_id = sub.id
+    `;
+    let params = [];
+    let where = [];
+    if (subject_id) { where.push('a.subject_id = $' + (params.length + 1)); params.push(subject_id); }
+    if (start_date) { where.push('a.date >= $' + (params.length + 1)); params.push(start_date); }
+    if (end_date) { where.push('a.date <= $' + (params.length + 1)); params.push(end_date); }
+    if (where.length > 0) { query += " WHERE " + where.join(" AND "); }
+    query += " ORDER BY a.date DESC, s.name";
+
+    const attendance = await db.query(query, params);
+
+    // Generate PDF
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=attendance-report.pdf');
+    doc.pipe(res);
+
+    doc.fontSize(18).text('Attendance Report', { align: 'center' });
+    doc.text(`Exported At: ${new Date().toLocaleString()}\n\n`, { align: 'center' });
+    // Table headers
+    doc.fontSize(12);
+    doc.text('Date', 40, doc.y, { continued: true, width: 80 });
+    doc.text('Student ID', 120, doc.y, { continued: true, width: 80 });
+    doc.text('Name', 200, doc.y, { continued: true, width: 150 });
+    doc.text('Subject', 350, doc.y, { continued: true, width: 100 });
+    doc.text('Status', 450, doc.y);
+    doc.moveDown(0.5).moveTo(40, doc.y).lineTo(550, doc.y).stroke();
+
+    // Table rows
+    attendance.forEach((rec) => {
+      doc.text(rec.date, 40, doc.y, { continued: true, width: 80 });
+      doc.text(rec.student_code, 120, doc.y, { continued: true, width: 80 });
+      doc.text(rec.student_name, 200, doc.y, { continued: true, width: 150 });
+      doc.text(rec.subject_name, 350, doc.y, { continued: true, width: 100 });
+      doc.text(rec.status, 450, doc.y);
+    });
+
+    doc.end();
+  } catch (error) {
+    console.error('Attendance export error:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
 
 // Public endpoints for student portal
 app.get('/api/public/subjects', async (req, res) => {

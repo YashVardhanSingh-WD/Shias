@@ -56,7 +56,33 @@ if (!process.env.SESSION_SECRET) {
     console.warn('[WARN] SESSION_SECRET not set. Using generated secret (not suitable for production)');
 }
 
+// Create sessions directory
+const SESSIONS_DIR = path.join(__dirname, 'sessions');
+if (!fs.existsSync(SESSIONS_DIR)) {
+    fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+}
+
+// Configure session store
+let sessionStore;
+if (process.env.NODE_ENV === 'production') {
+    // Use file store for production
+    const FileStore = require('session-file-store')(session);
+    sessionStore = new FileStore({
+        path: SESSIONS_DIR,
+        ttl: 86400, // 24 hours
+        retries: 5,
+        factor: 1,
+        minTimeout: 50,
+        maxTimeout: 86400000
+    });
+    console.log('[INFO] Using file-based session store for production');
+} else {
+    // Use memory store for development (with warning suppression)
+    console.log('[INFO] Using memory session store for development');
+}
+
 app.use(session({
+    store: sessionStore,
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
@@ -497,6 +523,7 @@ app.get('/api/public/announcements', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Attendance Management System running on http://localhost:${PORT}`);
     console.log('📊 Database: Railway PostgreSQL (production) / SQLite (development)');
+    console.log('💾 Sessions: File-based store (production) / Memory store (development)');
     console.log('🔑 Default admin credentials: username: admin, password: admin123');
     console.log('🌐 Ready for Railway deployment!');
 });

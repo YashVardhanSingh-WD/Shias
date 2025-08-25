@@ -1,59 +1,168 @@
+const { Pool } = require('pg');
 const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 
-// Database configuration for different environments
-class DatabaseManager {
+class Database {
     constructor() {
         this.db = null;
-        this.isInitialized = false;
+        this.type = null;
+        this.isConnected = false;
     }
 
-    // Initialize database connection
-    async initialize() {
-        if (this.isInitialized) {
-            return this.db;
-        }
-
+    async connect() {
         try {
-            // Ensure data directory exists for production
-            const dataDir = path.join(__dirname, 'data');
-            if (!fs.existsSync(dataDir)) {
-                fs.mkdirSync(dataDir, { recursive: true });
-                console.log('[INFO] Created data directory for database');
+            if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres')) {
+                // Railway PostgreSQL connection
+                await this.connectPostgreSQL();
+            } else {
+                // SQLite fallback for local development
+                await this.connectSQLite();
             }
-
-            // Use environment-specific database path
-            const dbPath = process.env.DATABASE_PATH || path.join(dataDir, 'attendance.db');
             
-            this.db = new sqlite3.Database(dbPath, (err) => {
-                if (err) {
-                    console.error('[ERROR] Failed to connect to database:', err);
-                    throw err;
-                } else {
-                    console.log('[INFO] Connected to SQLite database at:', dbPath);
-                }
-            });
-
-            // Enable foreign keys
-            this.db.run('PRAGMA foreign_keys = ON');
-            
-            // Initialize database schema
-            await this.initializeSchema();
-            
-            this.isInitialized = true;
-            return this.db;
+            await this.initializeTables();
+            console.log(`[INFO] Database connected successfully (${this.type})`);
         } catch (error) {
-            console.error('[ERROR] Database initialization failed:', error);
+            console.error('[ERROR] Database connection failed:', error);
             throw error;
         }
     }
 
-    // Initialize database schema and indexes
-    async initializeSchema() {
+    async connectPostgreSQL() {
+        this.db = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+        });
+        
+        // Test connection
+        const client = await this.db.connect();
+        client.release();
+        
+        this.type = 'postgresql';
+        this.isConnected = true;
+    }
+
+    async connectSQLite() {
+        const dbPath = process.env.DATABASE_PATH || './data/attendance.db';
+        const dataDir = path.dirname(dbPath);
+        
+        if (dataDir !== '.' && !fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+
+        return new Promise((resolve, reject) => {
+            this.db = new sqlite3.Database(dbPath, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    this.type = 'sqlite';
+                    this.isConnected = true;
+                    resolve();
+                }
+            });
+        });
+    }
+
+    async initializeTables() {
+        if (this.type === 'postgresql') {
+            await this.initializePostgreSQLTables();
+        } else {
+            await this.initializeSQLiteTables();
+        }
+    }
+
+    async initializePostgreSQLTables() {
+        const client = await this.db.connect();
+        
+        try {
+            // Users table
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    username VARCHAR(255) UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    name VARCHAR(255) NOT NULL,
+                    student_id VARCHAR(255) UNIQUE,
+                    role VARCHAR(50) DEFAULT 'student',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Subjects table
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS subjects (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Students table
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS students (
+                    id SERIAL PRIMARY KEY,
+                    student_id VARCHAR(255) UNIQUE NOT NULL,
+                    name VARCHAR(255) NOT NULL,
+                    email VARCHAR(255),
+                    phone VARCHAR(50),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Attendance table
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS attendance (
+                    id SERIAL PRIMARY KEY,
+                    student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+                    subject_id INTEGER REFERENCES subjects(id) ON DELETE CASCADE,
+                    date DATE NOT NULL,
+                    status VARCHAR(50) DEFAULT 'present',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Announcements table
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS announcements (
+                    id SERIAL PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    content TEXT NOT NULL,
+                    type VARCHAR(50) DEFAULT 'notice',
+                    priority VARCHAR(50) DEFAULT 'normal',
+                    is_active BOOLEAN DEFAULT true,
+                    file_url TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Create indexes
+            await client.query(`CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance(student_id)`);
+            await client.query(`CREATE INDEX IF NOT EXISTS idx_attendance_subject_id ON attendance(subject_id)`);
+            await client.query(`CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date)`);
+            await client.query(`CREATE INDEX IF NOT EXISTS idx_students_student_id ON students(student_id)`);
+            await client.query(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
+            await client.query(`CREATE INDEX IF NOT EXISTS idx_users_student_id ON users(student_id)`);
+
+            // Insert default admin user
+            const adminPassword = bcrypt.hashSync('admin123', 10);
+            await client.query(`
+                INSERT INTO users (username, password, name, role) 
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (username) DO NOTHING
+            `, ['admin', adminPassword, 'Administrator', 'admin']);
+
+        } finally {
+            client.release();
+        }
+    }
+
+    async initializeSQLiteTables() {
         return new Promise((resolve, reject) => {
             this.db.serialize(() => {
-                // Users table (admin and students)
+                // Users table
                 this.db.run(`CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE NOT NULL,
@@ -102,111 +211,88 @@ class DatabaseManager {
                     type TEXT DEFAULT 'notice',
                     priority TEXT DEFAULT 'normal',
                     is_active BOOLEAN DEFAULT 1,
+                    file_url TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    file_url TEXT
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )`);
 
-                // Create indexes for better performance
+                // Create indexes
                 this.db.run(`CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance(student_id)`);
                 this.db.run(`CREATE INDEX IF NOT EXISTS idx_attendance_subject_id ON attendance(subject_id)`);
                 this.db.run(`CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date)`);
-                this.db.run(`CREATE INDEX IF NOT EXISTS idx_students_student_id ON students(student_id)`);
-                this.db.run(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
-                this.db.run(`CREATE INDEX IF NOT EXISTS idx_users_student_id ON users(student_id)`);
 
-                // Insert default admin user if not exists
-                this.insertDefaultAdmin(() => {
-                    console.log('[INFO] Database schema initialized successfully');
-                    resolve();
+                // Insert default admin user
+                const adminPassword = bcrypt.hashSync('admin123', 10);
+                this.db.run(`INSERT OR IGNORE INTO users (username, password, name, role) VALUES (?, ?, ?, ?)`, 
+                    ['admin', adminPassword, 'Administrator', 'admin'], (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
                 });
             });
         });
     }
 
-    // Insert default admin user
-    insertDefaultAdmin(callback) {
-        const bcrypt = require('bcryptjs');
-        const defaultUsername = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
-        const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123';
-        
-        // Check if admin already exists
-        this.db.get('SELECT id FROM users WHERE role = ? LIMIT 1', ['admin'], (err, row) => {
-            if (err) {
-                console.error('[ERROR] Failed to check for existing admin:', err);
-                return callback(err);
-            }
-
-            if (!row) {
-                // Create default admin
-                const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
-                this.db.run(
-                    'INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)',
-                    [defaultUsername, hashedPassword, 'Administrator', 'admin'],
-                    function(insertErr) {
-                        if (insertErr) {
-                            console.error('[ERROR] Failed to create default admin:', insertErr);
-                            return callback(insertErr);
-                        }
-                        console.log('[INFO] Default admin user created');
-                        console.log(`[INFO] Admin credentials: ${defaultUsername} / ${defaultPassword}`);
-                        callback();
-                    }
-                );
-            } else {
-                console.log('[INFO] Admin user already exists');
-                callback();
-            }
-        });
-    }
-
-    // Get database instance
-    getDatabase() {
-        if (!this.isInitialized) {
-            throw new Error('Database not initialized. Call initialize() first.');
+    async query(sql, params = []) {
+        if (this.type === 'postgresql') {
+            const result = await this.db.query(sql, params);
+            return result.rows;
+        } else {
+            return new Promise((resolve, reject) => {
+                this.db.all(sql, params, (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                });
+            });
         }
-        return this.db;
     }
 
-    // Close database connection
-    close() {
+    async get(sql, params = []) {
+        if (this.type === 'postgresql') {
+            const result = await this.db.query(sql, params);
+            return result.rows[0] || null;
+        } else {
+            return new Promise((resolve, reject) => {
+                this.db.get(sql, params, (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row || null);
+                });
+            });
+        }
+    }
+
+    async run(sql, params = []) {
+        if (this.type === 'postgresql') {
+            const result = await this.db.query(sql, params);
+            return {
+                lastInsertId: result.rows[0]?.id || null,
+                changes: result.rowCount
+            };
+        } else {
+            return new Promise((resolve, reject) => {
+                this.db.run(sql, params, function(err) {
+                    if (err) reject(err);
+                    else resolve({
+                        lastInsertId: this.lastID,
+                        changes: this.changes
+                    });
+                });
+            });
+        }
+    }
+
+    async close() {
         if (this.db) {
-            this.db.close((err) => {
-                if (err) {
-                    console.error('[ERROR] Error closing database:', err);
-                } else {
-                    console.log('[INFO] Database connection closed');
-                }
-            });
-        }
-    }
-
-    // Backup database (useful for production)
-    async backup(backupPath) {
-        return new Promise((resolve, reject) => {
-            if (!this.db) {
-                return reject(new Error('Database not initialized'));
+            if (this.type === 'postgresql') {
+                await this.db.end();
+            } else {
+                this.db.close();
             }
-
-            const fs = require('fs');
-            const readStream = fs.createReadStream(this.db.filename);
-            const writeStream = fs.createWriteStream(backupPath);
-
-            readStream.pipe(writeStream);
-            
-            writeStream.on('finish', () => {
-                console.log(`[INFO] Database backup created: ${backupPath}`);
-                resolve(backupPath);
-            });
-
-            writeStream.on('error', (err) => {
-                console.error('[ERROR] Database backup failed:', err);
-                reject(err);
-            });
-        });
+            this.isConnected = false;
+        }
     }
 }
 
-// Export singleton instance
-const dbManager = new DatabaseManager();
-module.exports = dbManager;
+module.exports = Database;
